@@ -16,6 +16,10 @@ export interface TaskFormat {
   tag: string;
 }
 
+export type GameMode = 'quiz' | 'memory' | 'order';
+export type GameSocialMode = 'solo' | 'duell' | 'escape';
+export type GameStoryTheme = 'neutral' | 'detective' | 'space' | 'alchemy';
+
 export interface GeneratorFormState {
   format: TaskFormatId;
   subjectId: string;
@@ -27,6 +31,11 @@ export interface GeneratorFormState {
   inclusionMode: boolean; // Fördermodus / DaZ / Leichte Sprache
   targetDurationMinutes: number;
   additionalInstructions: string;
+  // Neue didaktische Spieloptionen
+  gameMode: GameMode;
+  gameSocialMode: GameSocialMode;
+  includeMisconceptions: boolean;
+  gameStoryTheme: GameStoryTheme;
 }
 
 export interface ParsedGenerationOutput {
@@ -38,6 +47,9 @@ export interface ParsedGenerationOutput {
   promptText: string;
   rawResponse: string;
   generatedAt: string;
+  orderSequence?: string[];
+  escapeCode?: string;
 }
 
 export type ActiveOutputTab = 'game' | 'worksheet' | 'rubric' | 'prompt';
+

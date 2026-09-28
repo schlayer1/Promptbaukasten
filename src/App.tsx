@@ -17,6 +17,7 @@ import { PinLoginModal } from './components/auth/PinLoginModal';
 import { CloudLibraryModal } from './components/library/CloudLibraryModal';
 import { ToastContainer, ToastMessage } from './components/common/Toast';
 import { StepFormatSelect } from './components/builder/StepFormatSelect';
+import { StepGameOptions } from './components/builder/StepGameOptions';
 import { StepCurriculumSelect } from './components/builder/StepCurriculumSelect';
 import { StepOperatorAfb } from './components/builder/StepOperatorAfb';
 import { StepInclusionDaz } from './components/builder/StepInclusionDaz';
@@ -54,7 +55,11 @@ export const App: React.FC = () => {
     afbDistribution: { afb1: 40, afb2: 40, afb3: 20 },
     inclusionMode: true,
     targetDurationMinutes: 45,
-    additionalInstructions: ''
+    additionalInstructions: '',
+    gameMode: 'quiz',
+    gameSocialMode: 'solo',
+    includeMisconceptions: true,
+    gameStoryTheme: 'neutral'
   });
 
   // --- AI PROVIDER STATE ---
@@ -150,7 +155,11 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
       afbDistribution: { afb1: 40, afb2: 40, afb3: 20 },
       inclusionMode: true,
       targetDurationMinutes: 45,
-      additionalInstructions: ''
+      additionalInstructions: '',
+      gameMode: 'quiz',
+      gameSocialMode: 'solo',
+      includeMisconceptions: true,
+      gameStoryTheme: 'neutral'
     });
   });
 
@@ -225,7 +234,11 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
       afbDistribution: { afb1: 40, afb2: 40, afb3: 20 },
       inclusionMode: true,
       targetDurationMinutes: 45,
-      additionalInstructions: ''
+      additionalInstructions: '',
+      gameMode: 'quiz',
+      gameSocialMode: 'solo',
+      includeMisconceptions: true,
+      gameStoryTheme: 'neutral'
     });
     addToast('Zurückgesetzt', 'Formular auf Standardwerte zurückgesetzt.', 'info');
   };
@@ -400,6 +413,20 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
               selectedFormat={formState.format}
               onSelectFormat={f => setFormState(prev => ({ ...prev, format: f }))}
             />
+
+            {/* SONDEROPTIONEN WENN FORMAT = LERNSPIEL */}
+            {formState.format === 'lernspiel' && (
+              <StepGameOptions
+                gameMode={formState.gameMode}
+                gameSocialMode={formState.gameSocialMode}
+                includeMisconceptions={formState.includeMisconceptions}
+                gameStoryTheme={formState.gameStoryTheme}
+                onGameModeChange={mode => setFormState(prev => ({ ...prev, gameMode: mode }))}
+                onSocialModeChange={mode => setFormState(prev => ({ ...prev, gameSocialMode: mode }))}
+                onMisconceptionsToggle={enabled => setFormState(prev => ({ ...prev, includeMisconceptions: enabled }))}
+                onStoryThemeChange={theme => setFormState(prev => ({ ...prev, gameStoryTheme: theme }))}
+              />
+            )}
 
             {/* SCHRITT 2: CURRICULUM */}
             <StepCurriculumSelect

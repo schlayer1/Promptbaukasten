@@ -93,6 +93,22 @@ export function buildDidacticPrompt(form: GeneratorFormState): { systemPrompt: s
   const selectedOps = THUERINGEN_OPERATORS.filter(op => form.selectedOperators.includes(op.id));
   const operatorNames = selectedOps.map(o => `${o.name} (AFB ${o.afb})`).join(', ');
 
+  const gameModeDesc = 
+    form.gameMode === 'memory' ? 'Fachbegriff-Memory (Paare finden Begriff ↔ Erklärung)' :
+    form.gameMode === 'order' ? 'Chronologie & Ablauf (Schritte/Ereignisse in logischer Reihenfolge sortieren)' :
+    'Arcade-Quiz (Multiple-Choice mit Streak & Kombo)';
+
+  const gameSocialDesc = 
+    form.gameSocialMode === 'duell' ? '2-Spieler-Duell an 1 iPad (Split-Screen / Buzzer-Wettkampf)' :
+    form.gameSocialMode === 'escape' ? 'Escape-Game (4-stelliger Tresorcode für Klassenraum-Schatztruhe)' :
+    'Einzelspieler-Modus mit Ehrenurkunde';
+
+  const storyThemeDesc =
+    form.gameStoryTheme === 'detective' ? 'Detektiv-Fall (Spurensuche, Indizien analysieren, Täter überführen)' :
+    form.gameStoryTheme === 'space' ? 'Weltraum-Expedition (Raumschiff-Crew auf Erkundung)' :
+    form.gameStoryTheme === 'alchemy' ? 'Labor-Rettung (Gefahrgut neutralisieren & Formel entschlüsseln)' :
+    'Neutral / Klassisch-Fachlich';
+
   const systemPrompt = `Du bist ein hochqualifizierter Fachdidaktiker und Lehrplanexperte für die Thüringer Regelschule (ThILLM).
 Deine Aufgabe ist es, exzellente, differenzierte und sofort im Unterricht einsetzbare Unterrichtsmaterialien und interaktive Lernaufgaben zu erstellen.
 
@@ -104,7 +120,8 @@ Pädagogische Leitlinien:
   * AFB II (Reorganisation & Transfer): z.B. Erläutern, Vergleichen, Analysieren, Begründen
   * AFB III (Reflexion, Werturteil & Gestaltung): z.B. Beurteilen, Stellung nehmen, Gestalten
 - Schülergerechte Sprache für Regelschüler, motivierend, alltagsnah und lebensweltbezogen
-${form.inclusionMode ? '- FÖRDERMODUS & DaZ AKTIV: Verwende Leichte/Einfache Sprache, kurze Sätze, markante Zwischenüberschriften und erstelle einen integrierten Fach-Wortspeicher mit einfachen Worterklärungen!' : ''}`;
+${form.inclusionMode ? '- FÖRDERMODUS & DaZ AKTIV: Verwende Leichte/Einfache Sprache, kurze Sätze, markante Zwischenüberschriften und erstelle einen integrierten Fach-Wortspeicher mit einfachen Worterklärungen!' : ''}
+${form.includeMisconceptions ? '- DIDAKTISCHER FEHLKONZEPT-FOKUS AKTIV: Die falschen Antwortmöglichkeiten (Distraktoren) MÜSSEN gezielt typische Denkfehler und Schüler-Mythen der Klassenstufe ' + form.gradeLevel + ' aufgreifen. In "explanation" muss kurz erläutert werden, welcher Denkfehler hinter der falschen Option steckt!' : ''}`;
 
   const userPrompt = `Erstelle eine vollständige, hochqualitative Ausarbeitung für folgendes Unterrichtsszenario:
 
@@ -123,8 +140,14 @@ ${form.additionalInstructions ? `- Besondere Hinweise: "${form.additionalInstruc
 - Ziel-Gewichtung: ${form.afbDistribution.afb1}% AFB I | ${form.afbDistribution.afb2}% AFB II | ${form.afbDistribution.afb3}% AFB III
 - Geplante Unterrichtsdauer: ca. ${form.targetDurationMinutes} Minuten
 
+${form.format === 'lernspiel' ? `=== LERNSPIEL-PARAMETER ===
+- Gewählte Spielmechanik: ${gameModeDesc}
+- Unterrichts-Szenario: ${gameSocialDesc}
+- Rahmenthema / Storytelling: ${storyThemeDesc}
+` : ''}
+
 === STRUKTUR DER ANTWORT (SEHR WICHTIG) ===
-Bitte strukturiere deine Antwort GENAU mit den folgenden 5 Trenn-Tags, damit unsere Software die Inhalte automatisch in die Tabs einsortieren kann:
+Bitte strukturiere deine Antwort GENAU mit den folgenden Trenn-Tags, damit unsere Software die Inhalte automatisch in die Tabs einsortieren kann:
 
 <!-- SECTION:WORKSHEET -->
 Hier ein druckfertiges, ansprechendes DIN-A4-Arbeitsblatt im Markdown-Format:
@@ -137,7 +160,7 @@ Hier ein druckfertiges, ansprechendes DIN-A4-Arbeitsblatt im Markdown-Format:
 - Ausführlicher Lösungsteil für die Lehrkraft am Ende
 
 <!-- SECTION:VOCABULARY -->
-Erstelle mindestens 4 bis 6 zentrale Fachbegriffe mit schülergerechter, einfacher Erklärung (Wortspeicher für DaZ & Förderung).
+Erstelle mindestens 4 bis 6 zentrale Fachbegriffe mit schülergerechter, einfacher Erklärung (Wortspeicher für DaZ & Förderung und Karten-Memory).
 Format:
 * **Fachbegriff 1**: Erklärung in einfacher Sprache
 * **Fachbegriff 2**: Erklärung in einfacher Sprache
@@ -150,10 +173,22 @@ Format Beispiel:
     "question": "Frage?",
     "options": ["Antwort A", "Antwort B", "Antwort C"],
     "correctIndex": 0,
-    "explanation": "Didaktische Erklärung, warum Antwort A stimmt.",
+    "explanation": "Didaktische Erklärung, warum Antwort A stimmt und welcher Denkfehler bei den anderen vorliegt.",
     "afbLevel": "I"
   }
 ]
+
+<!-- SECTION:GAME_ORDER -->
+Erstelle ein valides JSON-Array mit 4 bis 6 Teilschritten oder Ereignissen in der KORREKTEN logischen/chronologischen Reihenfolge zum Thema:
+[
+  "1. Schritt: Problem erfassen / Ausgangssituation",
+  "2. Schritt: Analyse und Einordnung",
+  "3. Schritt: Überprüfung und Durchführung",
+  "4. Schritt: Ergebnis und Bewertung"
+]
+
+<!-- SECTION:ESCAPE_CODE -->
+4829
 
 <!-- SECTION:RUBRIC -->
 Erstelle ein detailliertes tabellarisches Bewertungsraster (Erwartungshorizont):
@@ -186,9 +221,11 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
     return rawResponse.slice(contentStart, endIdx).trim();
   };
 
-  const worksheetRaw = extractSection('WORKSHEET', ['VOCABULARY', 'GAME_QUESTIONS', 'GAME_HTML', 'RUBRIC']);
-  const vocabRaw = extractSection('VOCABULARY', ['GAME_QUESTIONS', 'GAME_HTML', 'RUBRIC']);
-  const gameQuestionsRaw = extractSection('GAME_QUESTIONS', ['RUBRIC', 'GAME_HTML']);
+  const worksheetRaw = extractSection('WORKSHEET', ['VOCABULARY', 'GAME_QUESTIONS', 'GAME_ORDER', 'ESCAPE_CODE', 'RUBRIC']);
+  const vocabRaw = extractSection('VOCABULARY', ['GAME_QUESTIONS', 'GAME_ORDER', 'ESCAPE_CODE', 'RUBRIC']);
+  const gameQuestionsRaw = extractSection('GAME_QUESTIONS', ['GAME_ORDER', 'ESCAPE_CODE', 'RUBRIC']);
+  const gameOrderRaw = extractSection('GAME_ORDER', ['ESCAPE_CODE', 'RUBRIC']);
+  const escapeCodeRaw = extractSection('ESCAPE_CODE', ['RUBRIC']);
   const rubricRaw = extractSection('RUBRIC', []);
 
   // Parse Vocabulary
@@ -207,7 +244,6 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
   let questions: QuizQuestion[] = [];
   if (gameQuestionsRaw) {
     try {
-      // Find JSON array in block
       const jsonStart = gameQuestionsRaw.indexOf('[');
       const jsonEnd = gameQuestionsRaw.lastIndexOf(']');
       if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -215,9 +251,25 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
         questions = JSON.parse(jsonStr);
       }
     } catch (e) {
-      console.warn('Could not parse game questions as JSON, generating defaults:', e);
+      console.warn('Could not parse game questions as JSON:', e);
     }
   }
+
+  // Parse Order Items
+  let orderSequence: string[] = [];
+  if (gameOrderRaw) {
+    try {
+      const jsonStart = gameOrderRaw.indexOf('[');
+      const jsonEnd = gameOrderRaw.lastIndexOf(']');
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        orderSequence = JSON.parse(gameOrderRaw.slice(jsonStart, jsonEnd + 1));
+      }
+    } catch (e) {
+      console.warn('Could not parse game order sequence as JSON:', e);
+    }
+  }
+
+  const escapeCode = escapeCodeRaw ? escapeCodeRaw.replace(/[^0-9]/g, '').slice(0, 4) : '4829';
 
   // Default fallback questions if JSON parsing didn't find questions
   if (!questions || questions.length === 0) {
@@ -253,7 +305,13 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
     grade: form.gradeLevel,
     topic: topic?.title || 'Themenfeld Regelschule',
     questions,
-    inclusionMode: form.inclusionMode
+    inclusionMode: form.inclusionMode,
+    vocabulary,
+    gameMode: form.gameMode || 'quiz',
+    gameSocialMode: form.gameSocialMode || 'solo',
+    gameStoryTheme: form.gameStoryTheme || 'neutral',
+    orderSequence,
+    escapeCode: escapeCode || '4829'
   });
 
   const giftExport = generateMoodleGiftExport(questions, topic?.title || subject.name);
@@ -272,7 +330,9 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
     giftExport,
     promptText: userPrompt,
     rawResponse,
-    generatedAt: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    generatedAt: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+    orderSequence,
+    escapeCode
   };
 }
 
