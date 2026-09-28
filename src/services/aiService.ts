@@ -3,7 +3,7 @@ import { GeneratorFormState, ParsedGenerationOutput } from '../types/generator';
 import { THUERINGEN_SUBJECTS } from '../data/thueringenCurriculum';
 import { THUERINGEN_OPERATORS } from '../data/thueringenOperators';
 import { TASK_FORMATS, PROVIDER_CONFIGS } from '../data/defaultPresets';
-import { callGeminiApi } from './geminiEngine';
+import { callGeminiApi, DEFAULT_SCHOOL_GEMINI_KEY } from './geminiEngine';
 import { callOpenAiCompatibleApi } from './openAiCompatEngine';
 import { buildSelfContainedGameHtml, generateMoodleGiftExport, QuizQuestion } from './gameTemplate';
 
@@ -62,6 +62,11 @@ export function getEffectiveApiKey(provider: AiProvider): { key: string; isCusto
   const envKey = (import.meta as any).env?.[envName];
   if (envKey && typeof envKey === 'string' && envKey.trim().length > 0) {
     return { key: envKey.trim(), isCustom: false };
+  }
+
+  // Automatischer Schulschlüssel für Gemini (HBS Standard)
+  if (provider === 'gemini' && DEFAULT_SCHOOL_GEMINI_KEY) {
+    return { key: DEFAULT_SCHOOL_GEMINI_KEY, isCustom: false };
   }
 
   return null;
