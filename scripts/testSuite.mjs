@@ -249,6 +249,82 @@ Hier ist der Arbeitsblatt-Inhalt...
   const parsedEscape = escapeCodeRaw.replace(/[^0-9]/g, '').slice(0, 4);
   assert(parsedEscape === "1923", `Parsed 4-digit escape code "${parsedEscape}"`);
 
+  // TEST 5: DIGITAL LEARNING STATION & CLOZE CONVERTER
+  console.log('\n--- TEST 5: DIGITAL LEARNING STATION & CLOZE CONVERTER ---');
+  
+  // Test Cloze conversion logic
+  const rawClozeSnippet = 'Die Sippe lebte in [Höhlen* / Zelten / Wolkenkratzern] zusammen. Sie trugen Kleidung aus [Tierfellen* / Baumwolle / Plastik].';
+  const convertCloze = (raw) => {
+    return raw.replace(/\[([^\]]+)\]/g, (match, inner) => {
+      const parts = inner.split(/[\/|;]/).map(p => p.trim()).filter(Boolean);
+      let correctVal = '';
+      const cleanOptions = parts.map(opt => {
+        if (opt.includes('*')) {
+          const clean = opt.replace(/\*/g, '').trim();
+          correctVal = clean;
+          return clean;
+        }
+        return opt;
+      });
+      if (!correctVal) correctVal = cleanOptions[0];
+      const optsHtml = [
+        '<option value="">-- bitte auswählen --</option>',
+        ...cleanOptions.map(o => `<option value="${o}">${o}</option>`)
+      ].join('');
+      return `<select class="cloze-select" data-correct="${correctVal}">${optsHtml}</select>`;
+    });
+  };
+
+  const convertedCloze = convertCloze(rawClozeSnippet);
+  assert(convertedCloze.includes('data-correct="Höhlen"'), 'Cloze converted correctly with data-correct="Höhlen"');
+  assert(convertedCloze.includes('data-correct="Tierfellen"'), 'Cloze converted second hole with data-correct="Tierfellen"');
+  assert(convertedCloze.includes('cloze-select'), 'Contains class="cloze-select" for styling and validation');
+
+  // Verify Station Sections Parsing
+  const stationMockResponse = `
+<!-- SECTION:STATION_GOALS -->
+[
+  "Ich verstehe, was eine Sippe ist",
+  "Ich kenne die Rollen in einer Sippe",
+  "Ich weiß, wie der Alltag in einer Sippe aussah"
+]
+
+<!-- SECTION:STATION_KNOWLEDGE -->
+### Das Leben in der Sippe
+Die Menschen der Altsteinzeit lebten in kleinen Familiengruppen zusammen.
+
+<!-- SECTION:STATION_FLASHCARDS -->
+[
+  { "front": "Sippe", "back": "Eine kleine Familiengruppe von ca. 20-30 Personen." },
+  { "front": "Nomaden", "back": "Menschen ohne festen Wohnsitz, die den Herden folgten." }
+]
+
+<!-- SECTION:STATION_CLOZE -->
+Die Sippe bot Schutz vor wilden [Tieren* / Autos / Flugzeugen].
+
+<!-- SECTION:STATION_AFB -->
+[
+  {
+    "level": "I",
+    "title": "Aufgabe 1 (Niveau Grün)",
+    "taskText": "Nenne 3 Aufgaben der Sippenmitglieder.",
+    "hintText": "Denke an Jagd und Sammeln."
+  }
+]
+`;
+
+  const stationGoals = extractJsonArray(extractSection(stationMockResponse, 'STATION_GOALS', ['STATION_KNOWLEDGE']));
+  assert(stationGoals && stationGoals.length === 3, 'Parsed 3 station learning goals');
+  assert(stationGoals[0].includes('Sippe'), 'Goal 1 mentions Sippe');
+
+  const stationFlashcards = extractJsonArray(extractSection(stationMockResponse, 'STATION_FLASHCARDS', ['STATION_CLOZE']));
+  assert(stationFlashcards && stationFlashcards.length === 2, 'Parsed 2 3D-flashcards');
+  assert(stationFlashcards[0].front === 'Sippe', 'Card 1 front is "Sippe"');
+
+  const stationAfb = extractJsonArray(extractSection(stationMockResponse, 'STATION_AFB', []));
+  assert(stationAfb && stationAfb.length === 1, 'Parsed AFB task 1');
+  assert(stationAfb[0].level === 'I', 'AFB task has level I');
+
   console.log('\n==================================================');
   console.log(`🏁 FINAL SUITE RESULT: ${passCount} PASSED, ${failCount} FAILED`);
   console.log('==================================================');

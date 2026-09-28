@@ -295,6 +295,38 @@ async function runE2E() {
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, '07_custom_storytelling_prompt.png') });
     console.log('  📸 Saved: 07_custom_storytelling_prompt.png');
 
+    // ========================================================
+    // SCENARIO 6: DIGITALE LERNSTATION (ALL-IN-ONE SINGLE-PAGE WEBSITE)
+    // ========================================================
+    console.log('\n--- SCENARIO 6: DIGITALE LERNSTATION (SINGLE-PAGE WEBSITE) ---');
+
+    // Click 'Digitale Lernstation' format card
+    await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('button'));
+      const stationBtn = btns.find(b => b.textContent?.includes('Digitale Lernstation') || b.textContent?.includes('⭐ All-in-One Station'));
+      stationBtn?.click();
+    });
+    await new Promise(r => setTimeout(r, 400));
+
+    // Verify Station options container is displayed
+    const stationOptionsContainer = await page.$('.bg-sky-50\\/70');
+    assert(!!stationOptionsContainer, 'StepStationOptions configurator rendered with 8 interactive modules');
+
+    // Check module checkboxes rendered
+    const stationCheckboxes = await page.$$('.bg-sky-50\\/70 input[type="checkbox"]');
+    assert(stationCheckboxes.length >= 8, `Found ${stationCheckboxes.length} module toggles (Lernziele, Merkkästen, 3D-Karten, Lückentext, AFB I-III, Spezial, Quiz, Reflexion)`);
+
+    // Verify Tab 1 button is dynamically labeled "1. Lernstation (Webseite)"
+    const tab1Text = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('button'));
+      const t1 = btns.find(b => b.textContent?.includes('Lernstation'));
+      return t1 ? t1.textContent : '';
+    });
+    assert(tab1Text.includes('Lernstation'), `Tab 1 dynamically labeled as: "${tab1Text?.trim()}"`);
+
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '08_station_configurator.png') });
+    console.log('  📸 Saved: 08_station_configurator.png');
+
     console.log('\n====================================================');
     console.log(`🏁 PUPPETEER E2E RESULT: ${passCount} PASSED, ${failCount} FAILED`);
     console.log('====================================================');

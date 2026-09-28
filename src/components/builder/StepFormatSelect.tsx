@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Gamepad2, CheckSquare, Sparkles } from 'lucide-react';
+import { FileText, Gamepad2, CheckSquare, Sparkles, Globe } from 'lucide-react';
 import { TaskFormatId } from '../../types/generator';
 import { TASK_FORMATS } from '../../data/defaultPresets';
 
@@ -14,6 +14,7 @@ export const StepFormatSelect: React.FC<StepFormatSelectProps> = ({
 }) => {
   const getIcon = (iconName: string) => {
     switch (iconName) {
+      case 'Globe': return <Globe className="w-5 h-5" />;
       case 'FileText': return <FileText className="w-5 h-5" />;
       case 'Gamepad2': return <Gamepad2 className="w-5 h-5" />;
       case 'CheckSquare': return <CheckSquare className="w-5 h-5" />;

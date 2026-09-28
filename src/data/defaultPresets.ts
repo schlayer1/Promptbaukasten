@@ -3,6 +3,14 @@ import { ProviderConfig } from '../types/ai';
 
 export const TASK_FORMATS: TaskFormat[] = [
   {
+    id: 'lernstation',
+    title: 'Digitale Lernstation & Website',
+    subtitle: 'All-in-One HTML mit 8 Modulen',
+    description: 'Vollwertige Übungswebsite mit Lernziel-Checkliste, 3D-Karten, Lückentext-Sofortcheck, 3 AFB-Niveaus mit Klapp-Tipps, Zeitstrahl & Reflexion.',
+    icon: 'Globe',
+    tag: '⭐ All-in-One Station'
+  },
+  {
     id: 'arbeitsblatt',
     title: 'Differenziertes Arbeitsblatt',
     subtitle: '3 Niveaustufen & DIN-A4 Drucklayout',

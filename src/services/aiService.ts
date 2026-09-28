@@ -6,6 +6,63 @@ import { TASK_FORMATS, PROVIDER_CONFIGS } from '../data/defaultPresets';
 import { callGeminiApi, DEFAULT_SCHOOL_GEMINI_KEY } from './geminiEngine';
 import { callOpenAiCompatibleApi } from './openAiCompatEngine';
 import { buildSelfContainedGameHtml, generateMoodleGiftExport, QuizQuestion } from './gameTemplate';
+import { 
+  buildSelfContainedStationHtml, 
+  StationFlashcard, 
+  StationAfbTask, 
+  StationSpecialItem, 
+  StationQuizQuestion,
+  escapeHtml 
+} from './stationTemplate';
+
+export function convertClozeMarkdownToHtml(rawCloze: string): string {
+  if (!rawCloze) return '';
+  if (rawCloze.includes('cloze-select')) return rawCloze;
+
+  const converted = rawCloze.replace(/\[([^\]]+)\]/g, (match, inner) => {
+    if (!inner.includes('/') && !inner.includes('|') && !inner.includes(';')) {
+      return match;
+    }
+    const parts = inner.split(/[\/|;]/).map((p: string) => p.trim()).filter(Boolean);
+    if (parts.length < 2) return match;
+
+    let correctVal = '';
+    const cleanOptions = parts.map((opt: string) => {
+      if (opt.includes('*')) {
+        const clean = opt.replace(/\*/g, '').trim();
+        correctVal = clean;
+        return clean;
+      }
+      return opt;
+    });
+
+    if (!correctVal) {
+      correctVal = cleanOptions[0];
+    }
+
+    const shuffled = [...cleanOptions].sort(() => 0.5 - Math.random());
+
+    const optsHtml = [
+      '<option value="">-- bitte auswählen --</option>',
+      ...shuffled.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`)
+    ].join('');
+
+    return `<select class="cloze-select" data-correct="${escapeHtml(correctVal)}">${optsHtml}</select>`;
+  });
+
+  return converted.split('\n\n').map(p => `<p style="margin-bottom:0.75rem;">${p.replace(/\n/g, '<br>')}</p>`).join('');
+}
+
+export function formatKnowledgeMarkdown(raw: string): string {
+  if (!raw) return '';
+  return raw
+    .replace(/^### (.*$)/gim, '<h3 style="font-size:1.05rem; font-weight:800; margin-top:1.25rem; margin-bottom:0.4rem; color:#0f172a;">$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2 style="font-size:1.2rem; font-weight:900; margin-top:1.5rem; margin-bottom:0.6rem; color:#006185;">$1</h2>')
+    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+    .replace(/^\- (.*$)/gim, '<li style="margin-left:1.25rem; margin-bottom:0.35rem;">$1</li>')
+    .replace(/\n\n/gim, '</p><p style="margin-bottom:0.75rem;">');
+}
 
 const STORAGE_KEY = 'promptbaukasten_api_keys_v1';
 
@@ -146,9 +203,106 @@ ${form.format === 'lernspiel' ? `=== LERNSPIEL-PARAMETER ===
 - Unterrichts-Szenario: ${gameSocialDesc}
 - Rahmenthema / Storytelling: ${storyThemeDesc}
 ` : ''}
+${form.format === 'lernstation' ? `=== LERNSTATION-PARAMETER (SINGLE-PAGE INTERAKTIVE WEBSAITE) ===
+- Gewählte Module für diese Station:
+  * 1. Lernziel-Checkliste: ${form.stationModules?.goals !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+  * 2. Wissensbereich mit Merkkästen & Fachbegriffen: ${form.stationModules?.knowledge !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+  * 💡 Wortspeicher & Inklusionshilfen (DaZ / Förderung): ${form.stationInclusionTipps !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+  * 3. 3D-Lernkarten (Begriffe sichern): ${form.stationModules?.flashcards !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+  * 4. Interaktiver Lückentext: ${form.stationModules?.cloze !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+  * 5. Differenzierte Aufgaben (AFB I–III): ${form.stationModules?.afbTasks !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+  * 6. Fach-Spezialstation (${form.stationSpecialType === 'timeline' ? 'Zeitstrahl / Epochen' : form.stationSpecialType === 'detective' ? 'Quellen-Detektiv' : form.stationSpecialType === 'experiment' ? 'Experiment & Beobachtung' : 'Passend zum Fach/Thema'}): ${form.stationModules?.specialModule !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+  * 7. Wissens-Check Quiz: ${form.stationModules?.quiz !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+  * 8. Reflexion & Selbsteinschätzung + Suchbegriffe: ${form.stationModules?.reflection !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+` : ''}
 
 === STRUKTUR DER ANTWORT (SEHR WICHTIG) ===
 Bitte strukturiere deine Antwort GENAU mit den folgenden Trenn-Tags, damit unsere Software die Inhalte automatisch in die Tabs einsortieren kann:
+
+${form.format === 'lernstation' ? `<!-- SECTION:STATION_GOALS -->
+Valides JSON-Array von 3-4 Lernzielen ("Ich kann..." / "Ich weiß..."):
+[
+  "Ich verstehe die Bedeutung von ...",
+  "Ich kenne die wichtigsten Merkmale von ...",
+  "Ich kann erklären, warum ..."
+]
+
+<!-- SECTION:STATION_KNOWLEDGE -->
+Strukturierter Erklärungstext mit Zwischenüberschriften (###) und Merksätzen. 
+Formatiere zentrale Fachbegriffe fett.
+
+<!-- SECTION:STATION_FLASHCARDS -->
+Valides JSON-Array von 4 bis 6 Lernkarten (Vorderseite & Rückseite):
+[
+  { "front": "Fachbegriff", "back": "Schülergerechte Erklärung / Definition" }
+]
+
+<!-- SECTION:STATION_CLOZE -->
+Ein zusammenhängender Lückentext (ca. 4-6 Sätze) mit 3-5 Lücken im Format [Richtige Option* / Falsche Option 1 / Falsche Option 2].
+Beispiel: Die Menschen lebten in [Sippen* / Einzelhäusern / Großstädten] zusammen.
+
+<!-- SECTION:STATION_AFB -->
+Valides JSON-Array von genau 3 differenzierten Aufgaben (AFB I, II, III):
+[
+  {
+    "level": "I",
+    "title": "Aufgabe 1 (Niveau Grün - Basis)",
+    "taskText": "Basisaufgabe (Wiedergeben, Nennen)...",
+    "hintText": "Lösungstipp oder Denkhilfe...",
+    "targetAudience": "Basis-Förderung"
+  },
+  {
+    "level": "II",
+    "title": "Aufgabe 2 (Niveau Gelb - Standard)",
+    "taskText": "Standardaufgabe (Erläutern, Vergleichen)...",
+    "hintText": "Lösungstipp oder Denkhilfe...",
+    "targetAudience": "Regel-Niveau"
+  },
+  {
+    "level": "III",
+    "title": "Aufgabe 3 (Niveau Rot - Experten)",
+    "taskText": "Expertenaufgabe (Beurteilen, Gestalten, Reflexion)...",
+    "hintText": "Lösungstipp oder Denkhilfe...",
+    "targetAudience": "Vertiefung"
+  }
+]
+
+<!-- SECTION:STATION_SPECIAL -->
+TITEL: ${form.stationSpecialType === 'timeline' ? 'Historischer Zeitstrahl' : form.stationSpecialType === 'detective' ? 'Quellen-Detektiv' : form.stationSpecialType === 'experiment' ? 'Experiment & Beobachtung' : 'Entdecker-Station'}
+ITEMS:
+[
+  {
+    "title": "Station 1",
+    "periodOrCategory": "Epoche oder Kategorie",
+    "icon": "🔍",
+    "description": "Erklärung oder Beobachtung"
+  }
+]
+
+<!-- SECTION:STATION_QUIZ -->
+Valides JSON-Array mit 4 bis 6 Multiple-Choice-Fragen:
+[
+  {
+    "question": "Frage?",
+    "options": ["Richtige Antwort", "Falsche Option 1", "Falsche Option 2", "Falsche Option 3"],
+    "correctIndex": 0,
+    "explanation": "Didaktische Begründung."
+  }
+]
+
+<!-- SECTION:STATION_REFLECTION -->
+CHECKLIST:
+[
+  "Ich habe alle Stationen aufmerksam bearbeitet",
+  "Ich kenne die wichtigsten Fachbegriffe und kann sie erklären",
+  "Ich kann mein Wissen auf neue Aufgaben anwenden"
+]
+SEARCH:
+[
+  "${topic?.title || 'Thema'} einfach erklärt",
+  "${topic?.title || 'Thema'} Dokumentation Schule"
+]
+` : ''}
 
 <!-- SECTION:WORKSHEET -->
 Hier ein druckfertiges, ansprechendes DIN-A4-Arbeitsblatt im Markdown-Format:
@@ -206,28 +360,36 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
   const subject = THUERINGEN_SUBJECTS.find(s => s.id === form.subjectId) || THUERINGEN_SUBJECTS[0];
   const topic = subject.topics.find(t => t.id === form.topicId) || subject.topics[0];
 
-  // Helper to extract content between tags
-  const extractSection = (tag: string, nextTags: string[]): string => {
-    const startIdx = rawResponse.indexOf(`<!-- SECTION:${tag} -->`);
+  // Helper to extract content between tags resiliently
+  const extractSection = (tag: string): string => {
+    const marker = `<!-- SECTION:${tag} -->`;
+    const startIdx = rawResponse.indexOf(marker);
     if (startIdx === -1) return '';
-    const contentStart = startIdx + `<!-- SECTION:${tag} -->`.length;
+    const contentStart = startIdx + marker.length;
 
-    let endIdx = rawResponse.length;
-    for (const nextTag of nextTags) {
-      const idx = rawResponse.indexOf(`<!-- SECTION:${nextTag} -->`, contentStart);
-      if (idx !== -1 && idx < endIdx) {
-        endIdx = idx;
-      }
+    const nextMarkerIdx = rawResponse.indexOf('<!-- SECTION:', contentStart);
+    if (nextMarkerIdx !== -1) {
+      return rawResponse.slice(contentStart, nextMarkerIdx).trim();
     }
-    return rawResponse.slice(contentStart, endIdx).trim();
+    return rawResponse.slice(contentStart).trim();
   };
 
-  const worksheetRaw = extractSection('WORKSHEET', ['VOCABULARY', 'GAME_QUESTIONS', 'GAME_ORDER', 'ESCAPE_CODE', 'RUBRIC']);
-  const vocabRaw = extractSection('VOCABULARY', ['GAME_QUESTIONS', 'GAME_ORDER', 'ESCAPE_CODE', 'RUBRIC']);
-  const gameQuestionsRaw = extractSection('GAME_QUESTIONS', ['GAME_ORDER', 'ESCAPE_CODE', 'RUBRIC']);
-  const gameOrderRaw = extractSection('GAME_ORDER', ['ESCAPE_CODE', 'RUBRIC']);
-  const escapeCodeRaw = extractSection('ESCAPE_CODE', ['RUBRIC']);
-  const rubricRaw = extractSection('RUBRIC', []);
+  const worksheetRaw = extractSection('WORKSHEET');
+  const vocabRaw = extractSection('VOCABULARY');
+  const gameQuestionsRaw = extractSection('GAME_QUESTIONS');
+  const gameOrderRaw = extractSection('GAME_ORDER');
+  const escapeCodeRaw = extractSection('ESCAPE_CODE');
+  const rubricRaw = extractSection('RUBRIC');
+
+  // Station Sections
+  const stationGoalsRaw = extractSection('STATION_GOALS');
+  const stationKnowledgeRaw = extractSection('STATION_KNOWLEDGE');
+  const stationFlashcardsRaw = extractSection('STATION_FLASHCARDS');
+  const stationClozeRaw = extractSection('STATION_CLOZE');
+  const stationAfbRaw = extractSection('STATION_AFB');
+  const stationSpecialRaw = extractSection('STATION_SPECIAL');
+  const stationQuizRaw = extractSection('STATION_QUIZ');
+  const stationReflectionRaw = extractSection('STATION_REFLECTION');
 
   // Parse Vocabulary
   const vocabulary: { term: string; explanation: string }[] = [];
@@ -297,22 +459,197 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
     ];
   }
 
-  // Build the complete standalone Single-File HTML game
-  const gameHtml = buildSelfContainedGameHtml({
-    title: topic?.title || 'Unterrichts-Lernspiel',
-    subject: subject.name,
-    grade: form.gradeLevel,
-    topic: topic?.title || 'Themenfeld Regelschule',
-    questions,
-    inclusionMode: form.inclusionMode,
-    vocabulary,
-    gameMode: form.gameMode || 'quiz',
-    gameSocialMode: form.gameSocialMode || 'solo',
-    gameStoryTheme: form.gameStoryTheme || 'neutral',
-    customStoryTheme: form.customStoryTheme || '',
-    orderSequence,
-    escapeCode: escapeCode || '4829'
-  });
+  let gameHtml = '';
+  let stationHtml: string | undefined = undefined;
+
+  if (form.format === 'lernstation') {
+    // 1. Goals
+    let goals: string[] = extractJsonArray<string>(stationGoalsRaw) || [];
+    if (goals.length === 0) {
+      goals = [
+        `Ich verstehe die zentralen Grundbegriffe zum Thema "${topic?.title || 'Unterricht'}".`,
+        'Ich kann die wesentlichen Zusammenhänge sachgerecht und mit Fachbegriffen erklären.',
+        'Ich kann mein Wissen auf unterschiedliche Anforderungsbereiche (AFB I–III) anwenden.'
+      ];
+    }
+
+    // 2. Knowledge
+    const knowledgeHtml = formatKnowledgeMarkdown(stationKnowledgeRaw || worksheetRaw || '');
+
+    // 3. Flashcards
+    let flashcards: StationFlashcard[] = extractJsonArray<StationFlashcard>(stationFlashcardsRaw) || [];
+    if (flashcards.length === 0 && vocabulary.length > 0) {
+      flashcards = vocabulary.map(v => ({ front: v.term, back: v.explanation }));
+    } else if (flashcards.length === 0) {
+      flashcards = [
+        { front: topic?.title || 'Fachbegriff 1', back: 'Zentraler Begriff dieser Lerneinheit.' },
+        { front: 'Definition & Merkmale', back: 'Eigenschaften und wichtige Merkmale des Themas.' },
+        { front: 'Zusammenhang & Bedeutung', back: 'Warum dieser Gegenstand im Fach ' + subject.name + ' bedeutsam ist.' }
+      ];
+    }
+
+    // 4. Cloze
+    let clozeHtml = '';
+    if (form.stationModules?.cloze !== false) {
+      if (stationClozeRaw) {
+        clozeHtml = convertClozeMarkdownToHtml(stationClozeRaw);
+      } else {
+        clozeHtml = convertClozeMarkdownToHtml(
+          `Im Fach ${subject.name} beschäftigt sich das Thema [${topic?.title || 'Unterricht'}* / Nebensache / Freistunde] mit den wesentlichen Grundlagen. Für Regelschüler ist es wichtig, die [Fachbegriffe* / Fremdsprachen / Abkürzungen] sicher zu beherrschen und im Alltag [anzuwenden* / zu vergessen / zu ignorieren].`
+        );
+      }
+    }
+
+    // 5. AFB Tasks
+    let afbTasks: StationAfbTask[] = extractJsonArray<StationAfbTask>(stationAfbRaw) || [];
+    if (afbTasks.length === 0) {
+      afbTasks = [
+        {
+          level: 'I',
+          title: 'Aufgabe 1 (Niveau Grün - Basis)',
+          taskText: `Nenne die wichtigsten Merkmale zum Thema "${topic?.title || 'Thema'}" und beschreibe sie in einfachen Sätzen.`,
+          hintText: 'Schau noch einmal in den Wissensbereich oder auf die Lernkarten.',
+          targetAudience: 'Basis-Förderung'
+        },
+        {
+          level: 'II',
+          title: 'Aufgabe 2 (Niveau Gelb - Standard)',
+          taskText: `Erläutere Ursachen und Zusammenhänge. Vergleiche die verschiedenen Aspekte miteinander.`,
+          hintText: 'Nutze die Signalwörter "weil", "dadurch dass" und "im Unterschied zu".',
+          targetAudience: 'Regel-Niveau'
+        },
+        {
+          level: 'III',
+          title: 'Aufgabe 3 (Niveau Rot - Experten)',
+          taskText: `Beurteile die Bedeutung dieses Themas für die heutige Zeit. Nimm begründet Stellung.`,
+          hintText: 'Wäge mindestens zwei verschiedene Standpunkte oder Argumente gegeneinander ab.',
+          targetAudience: 'Vertiefung'
+        }
+      ];
+    }
+
+    // 6. Special Module
+    let specialModuleTitle = 'Quellen- & Entdecker-Station';
+    if (form.stationSpecialType === 'timeline') specialModuleTitle = 'Historischer Zeitstrahl & Epochen';
+    else if (form.stationSpecialType === 'detective') specialModuleTitle = 'Quellen-Detektiv & Spurensuche';
+    else if (form.stationSpecialType === 'experiment') specialModuleTitle = 'Experiment & Beobachtungs-Station';
+
+    if (stationSpecialRaw) {
+      const titleMatch = stationSpecialRaw.match(/TITEL:\s*([^\n\r]+)/i);
+      if (titleMatch && titleMatch[1].trim()) {
+        specialModuleTitle = titleMatch[1].trim();
+      }
+    }
+
+    let specialItems: StationSpecialItem[] = extractJsonArray<StationSpecialItem>(stationSpecialRaw) || [];
+    if (specialItems.length === 0) {
+      specialItems = [
+        {
+          title: 'Entdeckung 1: Der Ausgangspunkt',
+          periodOrCategory: 'Phase 1',
+          icon: '🔍',
+          description: `Erste Beobachtungen und historische/fachliche Ausgangslage zu ${topic?.title || 'Thema'}.`
+        },
+        {
+          title: 'Entdeckung 2: Die Entwicklung',
+          periodOrCategory: 'Phase 2',
+          icon: '⚡',
+          description: 'Zentrale Veränderungen und prägende Ereignisse in diesem Themengebiet.'
+        },
+        {
+          title: 'Entdeckung 3: Die Auswirkung',
+          periodOrCategory: 'Phase 3',
+          icon: '💡',
+          description: 'Nachhaltige Folgen und Erkenntnisse für unser heutiges Verständnis.'
+        }
+      ];
+    }
+
+    // 7. Quiz
+    let stationQuiz: StationQuizQuestion[] = extractJsonArray<StationQuizQuestion>(stationQuizRaw) || [];
+    if (stationQuiz.length === 0 && questions.length > 0) {
+      stationQuiz = questions.map(q => ({
+        question: q.question,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        explanation: q.explanation || ''
+      }));
+    }
+
+    // 8. Reflection
+    let reflectionChecklist: string[] = [];
+    let researchRecommendations: string[] = [];
+    if (stationReflectionRaw) {
+      const checklistIdx = stationReflectionRaw.indexOf('CHECKLIST:');
+      const searchIdx = stationReflectionRaw.indexOf('SEARCH:');
+      if (checklistIdx !== -1) {
+        const checkText = searchIdx !== -1 ? stationReflectionRaw.slice(checklistIdx, searchIdx) : stationReflectionRaw.slice(checklistIdx);
+        reflectionChecklist = extractJsonArray<string>(checkText) || [];
+      }
+      if (searchIdx !== -1) {
+        const searchText = stationReflectionRaw.slice(searchIdx);
+        researchRecommendations = extractJsonArray<string>(searchText) || [];
+      }
+      if (reflectionChecklist.length === 0) {
+        reflectionChecklist = extractJsonArray<string>(stationReflectionRaw) || [];
+      }
+    }
+
+    if (reflectionChecklist.length === 0) {
+      reflectionChecklist = [
+        'Ich habe alle Stationen aufmerksam durchgearbeitet.',
+        `Ich kenne die wichtigsten Fachbegriffe zu "${topic?.title || 'Thema'}" und kann sie erklären.`,
+        'Ich habe die Aufgaben auf meinem Niveau eigenständig bearbeitet.'
+      ];
+    }
+
+    if (researchRecommendations.length === 0) {
+      researchRecommendations = [
+        `${topic?.title || subject.name} einfach erklärt`,
+        `${topic?.title || subject.name} Regelschule Dokumentation`
+      ];
+    }
+
+    // Inclusion Tips from vocabulary
+    const inclusionTips = form.stationInclusionTipps !== false ? vocabulary : [];
+
+    stationHtml = buildSelfContainedStationHtml({
+      title: topic?.title || 'Digitale Lernstation',
+      subject: subject.name,
+      grade: form.gradeLevel,
+      topic: topic?.title || 'Themenfeld Regelschule',
+      goals: form.stationModules?.goals !== false ? goals : [],
+      knowledgeHtml: form.stationModules?.knowledge !== false ? knowledgeHtml : '',
+      inclusionTips,
+      flashcards: form.stationModules?.flashcards !== false ? flashcards : [],
+      clozeHtml,
+      afbTasks: form.stationModules?.afbTasks !== false ? afbTasks : [],
+      specialModuleTitle,
+      specialItems: form.stationModules?.specialModule !== false ? specialItems : [],
+      quizQuestions: form.stationModules?.quiz !== false ? stationQuiz : [],
+      reflectionChecklist: form.stationModules?.reflection !== false ? reflectionChecklist : [],
+      researchRecommendations
+    });
+
+    gameHtml = stationHtml;
+  } else {
+    // Build standard standalone Single-File HTML game
+    gameHtml = buildSelfContainedGameHtml({
+      title: topic?.title || 'Unterrichts-Lernspiel',
+      subject: subject.name,
+      grade: form.gradeLevel,
+      topic: topic?.title || 'Themenfeld Regelschule',
+      questions,
+      inclusionMode: form.inclusionMode,
+      vocabulary,
+      gameMode: form.gameMode || 'quiz',
+      gameSocialMode: form.gameSocialMode || 'solo',
+      gameStoryTheme: form.gameStoryTheme || 'neutral',
+      customStoryTheme: form.customStoryTheme || '',
+      orderSequence,
+      escapeCode: escapeCode || '4829'
+    });
+  }
 
   const giftExport = generateMoodleGiftExport(questions, topic?.title || subject.name);
 
@@ -324,6 +661,7 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
 
   return {
     gameHtml,
+    stationHtml,
     worksheetMarkdown,
     rubricMarkdown,
     vocabulary,

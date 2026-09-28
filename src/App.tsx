@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   Share2,
   CloudUpload,
-  BookOpen
+  BookOpen,
+  Globe
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { ApiKeyModal } from './components/ApiKeyModal';
@@ -18,6 +19,7 @@ import { CloudLibraryModal } from './components/library/CloudLibraryModal';
 import { ToastContainer, ToastMessage } from './components/common/Toast';
 import { StepFormatSelect } from './components/builder/StepFormatSelect';
 import { StepGameOptions } from './components/builder/StepGameOptions';
+import { StepStationOptions } from './components/builder/StepStationOptions';
 import { StepCurriculumSelect } from './components/builder/StepCurriculumSelect';
 import { StepOperatorAfb } from './components/builder/StepOperatorAfb';
 import { StepInclusionDaz } from './components/builder/StepInclusionDaz';
@@ -61,7 +63,19 @@ export const App: React.FC = () => {
     includeMisconceptions: true,
     customMisconceptions: '',
     gameStoryTheme: 'neutral',
-    customStoryTheme: ''
+    customStoryTheme: '',
+    stationModules: {
+      goals: true,
+      knowledge: true,
+      flashcards: true,
+      cloze: true,
+      afbTasks: true,
+      specialModule: true,
+      quiz: true,
+      reflection: true
+    },
+    stationSpecialType: 'auto',
+    stationInclusionTipps: true
   });
 
   // --- AI PROVIDER STATE ---
@@ -163,7 +177,19 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
       includeMisconceptions: true,
       customMisconceptions: '',
       gameStoryTheme: 'neutral',
-      customStoryTheme: ''
+      customStoryTheme: '',
+      stationModules: {
+        goals: true,
+        knowledge: true,
+        flashcards: true,
+        cloze: true,
+        afbTasks: true,
+        specialModule: true,
+        quiz: true,
+        reflection: true
+      },
+      stationSpecialType: 'auto',
+      stationInclusionTipps: true
     });
   });
 
@@ -244,7 +270,19 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
       includeMisconceptions: true,
       customMisconceptions: '',
       gameStoryTheme: 'neutral',
-      customStoryTheme: ''
+      customStoryTheme: '',
+      stationModules: {
+        goals: true,
+        knowledge: true,
+        flashcards: true,
+        cloze: true,
+        afbTasks: true,
+        specialModule: true,
+        quiz: true,
+        reflection: true
+      },
+      stationSpecialType: 'auto',
+      stationInclusionTipps: true
     });
     addToast('Zurückgesetzt', 'Formular auf Standardwerte zurückgesetzt.', 'info');
   };
@@ -277,7 +315,7 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
         const parsed = parseAiOutput(resp.content, formState);
         setOutput(parsed);
         // Switch tab based on format
-        if (formState.format === 'lernspiel') {
+        if (formState.format === 'lernspiel' || formState.format === 'lernstation') {
           setActiveTab('game');
         } else {
           setActiveTab('worksheet');
@@ -432,6 +470,18 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
               onSelectFormat={f => setFormState(prev => ({ ...prev, format: f }))}
             />
 
+            {/* SONDEROPTIONEN WENN FORMAT = LERNSTATION */}
+            {formState.format === 'lernstation' && (
+              <StepStationOptions
+                stationModules={formState.stationModules}
+                stationSpecialType={formState.stationSpecialType}
+                stationInclusionTipps={formState.stationInclusionTipps}
+                onModulesChange={mods => setFormState(prev => ({ ...prev, stationModules: mods }))}
+                onSpecialTypeChange={st => setFormState(prev => ({ ...prev, stationSpecialType: st }))}
+                onInclusionTippsToggle={enabled => setFormState(prev => ({ ...prev, stationInclusionTipps: enabled }))}
+              />
+            )}
+
             {/* SONDEROPTIONEN WENN FORMAT = LERNSPIEL */}
             {formState.format === 'lernspiel' && (
               <StepGameOptions
@@ -506,8 +556,12 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
-                  <Gamepad2 className="w-4 h-4" />
-                  <span>1. Lernspiel</span>
+                  {formState.format === 'lernstation' ? (
+                    <Globe className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <Gamepad2 className="w-4 h-4" />
+                  )}
+                  <span>{formState.format === 'lernstation' ? '1. Lernstation (Webseite)' : '1. Lernspiel'}</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20">HTML5</span>
                 </button>
 
