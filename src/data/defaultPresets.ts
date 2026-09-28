@@ -84,12 +84,13 @@ export const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     id: 'openrouter',
     name: 'OpenRouter',
     badge: 'Universal-Router',
-    description: 'Bündelt dutzende Modelle, darunter auch vollständig kostenlose Open-Source-Modelle.',
-    freeTierInfo: 'Kostenlose Modelle mit der Endung :free ohne Kreditkarte nutzbar.',
+    description: 'Bündelt dutzende Modelle mit automatischer Ausfall-Kette.',
+    freeTierInfo: 'Nutzt standardmäßig das Preset @preset/freie-modelle.',
     apiKeyUrl: 'https://openrouter.ai/keys',
-    defaultModel: 'meta-llama/llama-3.3-70b-instruct:free',
+    defaultModel: '@preset/freie-modelle',
     availableModels: [
-      { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B Instruct (Free)', recommended: true },
+      { id: '@preset/freie-modelle', label: '★ Preset: Freie Modelle (@preset/freie-modelle)', recommended: true },
+      { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B Instruct (Free)' },
       { id: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash Exp (Free)' },
       { id: 'deepseek/deepseek-r1:free', label: 'DeepSeek R1 (Free)' }
     ],

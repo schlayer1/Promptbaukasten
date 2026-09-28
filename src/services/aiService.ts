@@ -38,7 +38,7 @@ export function saveOpenRouterPreset(preset: string): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
 }
 
-export function getEffectiveOpenRouterPreset(): string | null {
+export function getEffectiveOpenRouterPreset(): string {
   const stored = getStoredApiKeys();
   if (stored.openrouterPreset && stored.openrouterPreset.trim().length > 0) {
     return stored.openrouterPreset.trim();
@@ -47,7 +47,7 @@ export function getEffectiveOpenRouterPreset(): string | null {
   if (envPreset && typeof envPreset === 'string' && envPreset.trim().length > 0) {
     return envPreset.trim();
   }
-  return null;
+  return '@preset/freie-modelle';
 }
 
 export function getEffectiveApiKey(provider: AiProvider): { key: string; isCustom: boolean } | null {
@@ -287,9 +287,7 @@ export async function executeGeneration(
   let targetModel = model || PROVIDER_CONFIGS[provider].defaultModel;
   if (provider === 'openrouter') {
     const customPreset = getEffectiveOpenRouterPreset();
-    if (model === 'custom-preset' && customPreset) {
-      targetModel = customPreset.startsWith('@preset/') ? customPreset : `@preset/${customPreset}`;
-    } else if (!model && customPreset) {
+    if (model === 'custom-preset' || model === '@preset/freie-modelle' || !model) {
       targetModel = customPreset.startsWith('@preset/') ? customPreset : `@preset/${customPreset}`;
     }
   }

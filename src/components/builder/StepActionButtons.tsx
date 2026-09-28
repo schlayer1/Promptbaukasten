@@ -35,19 +35,19 @@ export const StepActionButtons: React.FC<StepActionButtonsProps> = ({
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-700">Aktives KI-Modell:</span>
           <select
-            value={model || (openrouterPreset ? 'custom-preset' : cfg.defaultModel)}
+            value={model || cfg.defaultModel}
             onChange={e => onModelChange(e.target.value)}
             disabled={isGenerating}
             className="text-xs font-semibold px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-school-primary"
           >
-            {openrouterPreset && (
+            {openrouterPreset && openrouterPreset !== '@preset/freie-modelle' && (
               <option value="custom-preset">
-                ★ OpenRouter Preset ({openrouterPreset})
+                ★ Eigenes Preset ({openrouterPreset})
               </option>
             )}
             {cfg.availableModels.map(m => (
               <option key={m.id} value={m.id}>
-                {m.label} {m.recommended && !openrouterPreset ? '★' : ''}
+                {m.label}
               </option>
             ))}
           </select>
