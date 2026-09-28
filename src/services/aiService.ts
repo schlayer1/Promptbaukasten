@@ -241,34 +241,32 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
     }
   }
 
-  // Parse Questions
-  let questions: QuizQuestion[] = [];
-  if (gameQuestionsRaw) {
-    try {
-      const jsonStart = gameQuestionsRaw.indexOf('[');
-      const jsonEnd = gameQuestionsRaw.lastIndexOf(']');
-      if (jsonStart !== -1 && jsonEnd !== -1) {
-        const jsonStr = gameQuestionsRaw.slice(jsonStart, jsonEnd + 1);
-        questions = JSON.parse(jsonStr);
+  // Helper for resilient JSON Array extraction from LLM outputs (handles ```json fences & trailing commas)
+  const extractJsonArray = <T = any>(text: string): T[] | null => {
+    if (!text) return null;
+    const cleaned = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+    const start = cleaned.indexOf('[');
+    const end = cleaned.lastIndexOf(']');
+    if (start !== -1 && end !== -1 && end > start) {
+      try {
+        const parsed = JSON.parse(cleaned.slice(start, end + 1));
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        try {
+          const withoutTrailingCommas = cleaned.slice(start, end + 1).replace(/,\s*([}\]])/g, '$1');
+          const parsed = JSON.parse(withoutTrailingCommas);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {}
       }
-    } catch (e) {
-      console.warn('Could not parse game questions as JSON:', e);
     }
-  }
+    return null;
+  };
+
+  // Parse Questions
+  let questions: QuizQuestion[] = extractJsonArray<QuizQuestion>(gameQuestionsRaw) || [];
 
   // Parse Order Items
-  let orderSequence: string[] = [];
-  if (gameOrderRaw) {
-    try {
-      const jsonStart = gameOrderRaw.indexOf('[');
-      const jsonEnd = gameOrderRaw.lastIndexOf(']');
-      if (jsonStart !== -1 && jsonEnd !== -1) {
-        orderSequence = JSON.parse(gameOrderRaw.slice(jsonStart, jsonEnd + 1));
-      }
-    } catch (e) {
-      console.warn('Could not parse game order sequence as JSON:', e);
-    }
-  }
+  let orderSequence: string[] = extractJsonArray<string>(gameOrderRaw) || [];
 
   const escapeCode = escapeCodeRaw ? escapeCodeRaw.replace(/[^0-9]/g, '').slice(0, 4) : '4829';
 
