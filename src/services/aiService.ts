@@ -28,6 +28,28 @@ export function saveApiKey(provider: AiProvider, key: string): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
 }
 
+export function saveOpenRouterPreset(preset: string): void {
+  const current = getStoredApiKeys();
+  if (preset.trim()) {
+    current.openrouterPreset = preset.trim();
+  } else {
+    delete current.openrouterPreset;
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+}
+
+export function getEffectiveOpenRouterPreset(): string | null {
+  const stored = getStoredApiKeys();
+  if (stored.openrouterPreset && stored.openrouterPreset.trim().length > 0) {
+    return stored.openrouterPreset.trim();
+  }
+  const envPreset = (import.meta as any).env?.VITE_OPENROUTER_PRESET;
+  if (envPreset && typeof envPreset === 'string' && envPreset.trim().length > 0) {
+    return envPreset.trim();
+  }
+  return null;
+}
+
 export function getEffectiveApiKey(provider: AiProvider): { key: string; isCustom: boolean } | null {
   const stored = getStoredApiKeys();
   const custom = stored[provider];
@@ -262,6 +284,16 @@ export async function executeGeneration(
   const { systemPrompt, userPrompt } = buildDidacticPrompt(form);
   const startTime = Date.now();
 
+  let targetModel = model || PROVIDER_CONFIGS[provider].defaultModel;
+  if (provider === 'openrouter') {
+    const customPreset = getEffectiveOpenRouterPreset();
+    if (model === 'custom-preset' && customPreset) {
+      targetModel = customPreset.startsWith('@preset/') ? customPreset : `@preset/${customPreset}`;
+    } else if (!model && customPreset) {
+      targetModel = customPreset.startsWith('@preset/') ? customPreset : `@preset/${customPreset}`;
+    }
+  }
+
   try {
     let rawText = '';
     if (provider === 'gemini') {
@@ -269,13 +301,13 @@ export async function executeGeneration(
         apiKey: apiKeyInfo.key,
         systemPrompt,
         userPrompt,
-        model: model || PROVIDER_CONFIGS.gemini.defaultModel
+        model: targetModel
       });
     } else {
       rawText = await callOpenAiCompatibleApi({
         provider,
         apiKey: apiKeyInfo.key,
-        model: model || PROVIDER_CONFIGS[provider].defaultModel,
+        model: targetModel,
         systemPrompt,
         userPrompt
       });
@@ -286,7 +318,7 @@ export async function executeGeneration(
       success: true,
       content: rawText,
       provider,
-      modelUsed: model || PROVIDER_CONFIGS[provider].defaultModel,
+      modelUsed: targetModel,
       durationMs
     };
   } catch (err: any) {
@@ -294,7 +326,7 @@ export async function executeGeneration(
       success: false,
       content: '',
       provider,
-      modelUsed: model || PROVIDER_CONFIGS[provider].defaultModel,
+      modelUsed: targetModel,
       durationMs: Date.now() - startTime,
       error: err.message || 'Unbekannter Generierungsfehler'
     };

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Key, ShieldCheck, AlertCircle, ExternalLink, Eye, EyeOff, Save, Sparkles, Server } from 'lucide-react';
 import { AiProvider } from '../types/ai';
 import { PROVIDER_CONFIGS } from '../data/defaultPresets';
-import { getStoredApiKeys, saveApiKey, getEffectiveApiKey } from '../services/aiService';
+import { getStoredApiKeys, saveApiKey, getEffectiveApiKey, getEffectiveOpenRouterPreset, saveOpenRouterPreset } from '../services/aiService';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -20,6 +20,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   if (!isOpen) return null;
 
   const [keys, setKeys] = useState(() => getStoredApiKeys());
+  const [preset, setPreset] = useState(() => getEffectiveOpenRouterPreset() || '');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const providers: AiProvider[] = ['gemini', 'groq', 'mistral', 'openrouter'];
 
@@ -34,13 +35,20 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   const handleSave = (provider: AiProvider) => {
     const val = keys[provider] || '';
     saveApiKey(provider, val);
+    if (provider === 'openrouter') {
+      saveOpenRouterPreset(preset);
+    }
     onKeysChanged();
-    onShowToast('Gespeichert', `API-Schlüssel für ${PROVIDER_CONFIGS[provider].name} wurde aktualisiert.`, 'success');
+    onShowToast('Gespeichert', `Einstellungen für ${PROVIDER_CONFIGS[provider].name} wurden aktualisiert.`, 'success');
   };
 
   const handleClear = (provider: AiProvider) => {
     saveApiKey(provider, '');
     setKeys(prev => ({ ...prev, [provider]: '' }));
+    if (provider === 'openrouter') {
+      saveOpenRouterPreset('');
+      setPreset('');
+    }
     onKeysChanged();
     onShowToast('Entfernt', `Persönlicher Key für ${PROVIDER_CONFIGS[provider].name} gelöscht.`, 'info');
   };
@@ -160,6 +168,33 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                       </button>
                     )}
                   </div>
+
+                  {p === 'openrouter' && (
+                    <div className="mt-2.5 pt-2 border-t border-slate-100">
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        OpenRouter Preset-Name / Slug (Optional):
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="z. B. mein-free-preset oder @preset/mein-preset"
+                          value={preset}
+                          onChange={e => setPreset(e.target.value)}
+                          className="flex-1 text-xs font-mono px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-school-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSave('openrouter')}
+                          className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold"
+                        >
+                          Preset speichern
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        Wenn angegeben, verwendet die App direkt dein in OpenRouter erstelltes Multi-Modell-Preset (mit automatischer Ausfall-Kette).
+                      </p>
+                    </div>
+                  )}
 
                   <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
                     <span className="flex items-center gap-1">

@@ -2,7 +2,7 @@ import React from 'react';
 import { Copy, Wand2, Loader2, Key, AlertTriangle, ArrowRight } from 'lucide-react';
 import { AiProvider } from '../../types/ai';
 import { PROVIDER_CONFIGS } from '../../data/defaultPresets';
-import { getEffectiveApiKey } from '../../services/aiService';
+import { getEffectiveApiKey, getEffectiveOpenRouterPreset } from '../../services/aiService';
 
 interface StepActionButtonsProps {
   provider: AiProvider;
@@ -26,6 +26,7 @@ export const StepActionButtons: React.FC<StepActionButtonsProps> = ({
   const cfg = PROVIDER_CONFIGS[provider];
   const effectiveKey = getEffectiveApiKey(provider);
   const hasKey = !!effectiveKey;
+  const openrouterPreset = provider === 'openrouter' ? getEffectiveOpenRouterPreset() : null;
 
   return (
     <div className="pt-4 border-t border-slate-200 space-y-3">
@@ -34,14 +35,19 @@ export const StepActionButtons: React.FC<StepActionButtonsProps> = ({
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-700">Aktives KI-Modell:</span>
           <select
-            value={model || cfg.defaultModel}
+            value={model || (openrouterPreset ? 'custom-preset' : cfg.defaultModel)}
             onChange={e => onModelChange(e.target.value)}
             disabled={isGenerating}
             className="text-xs font-semibold px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-school-primary"
           >
+            {openrouterPreset && (
+              <option value="custom-preset">
+                ★ OpenRouter Preset ({openrouterPreset})
+              </option>
+            )}
             {cfg.availableModels.map(m => (
               <option key={m.id} value={m.id}>
-                {m.label} {m.recommended ? '★' : ''}
+                {m.label} {m.recommended && !openrouterPreset ? '★' : ''}
               </option>
             ))}
           </select>

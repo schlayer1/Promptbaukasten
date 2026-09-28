@@ -17,6 +17,7 @@ export interface ApiKeyStore {
   groq?: string;
   mistral?: string;
   openrouter?: string;
+  openrouterPreset?: string;
 }
 
 export interface GenerationRequest {
