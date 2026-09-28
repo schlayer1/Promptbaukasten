@@ -18,7 +18,7 @@ export interface TaskFormat {
 
 export type GameMode = 'quiz' | 'memory' | 'order';
 export type GameSocialMode = 'solo' | 'duell' | 'escape';
-export type GameStoryTheme = 'neutral' | 'detective' | 'space' | 'alchemy';
+export type GameStoryTheme = 'neutral' | 'detective' | 'space' | 'alchemy' | 'custom';
 
 export interface GeneratorFormState {
   format: TaskFormatId;
@@ -35,7 +35,9 @@ export interface GeneratorFormState {
   gameMode: GameMode;
   gameSocialMode: GameSocialMode;
   includeMisconceptions: boolean;
+  customMisconceptions: string;
   gameStoryTheme: GameStoryTheme;
+  customStoryTheme: string;
 }
 
 export interface ParsedGenerationOutput {

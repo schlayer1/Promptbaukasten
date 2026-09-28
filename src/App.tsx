@@ -59,7 +59,9 @@ export const App: React.FC = () => {
     gameMode: 'quiz',
     gameSocialMode: 'solo',
     includeMisconceptions: true,
-    gameStoryTheme: 'neutral'
+    customMisconceptions: '',
+    gameStoryTheme: 'neutral',
+    customStoryTheme: ''
   });
 
   // --- AI PROVIDER STATE ---
@@ -159,7 +161,9 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
       gameMode: 'quiz',
       gameSocialMode: 'solo',
       includeMisconceptions: true,
-      gameStoryTheme: 'neutral'
+      customMisconceptions: '',
+      gameStoryTheme: 'neutral',
+      customStoryTheme: ''
     });
   });
 
@@ -238,7 +242,9 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
       gameMode: 'quiz',
       gameSocialMode: 'solo',
       includeMisconceptions: true,
-      gameStoryTheme: 'neutral'
+      customMisconceptions: '',
+      gameStoryTheme: 'neutral',
+      customStoryTheme: ''
     });
     addToast('Zurückgesetzt', 'Formular auf Standardwerte zurückgesetzt.', 'info');
   };
@@ -420,11 +426,15 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
                 gameMode={formState.gameMode}
                 gameSocialMode={formState.gameSocialMode}
                 includeMisconceptions={formState.includeMisconceptions}
+                customMisconceptions={formState.customMisconceptions}
                 gameStoryTheme={formState.gameStoryTheme}
+                customStoryTheme={formState.customStoryTheme}
                 onGameModeChange={mode => setFormState(prev => ({ ...prev, gameMode: mode }))}
                 onSocialModeChange={mode => setFormState(prev => ({ ...prev, gameSocialMode: mode }))}
                 onMisconceptionsToggle={enabled => setFormState(prev => ({ ...prev, includeMisconceptions: enabled }))}
+                onCustomMisconceptionsChange={val => setFormState(prev => ({ ...prev, customMisconceptions: val }))}
                 onStoryThemeChange={theme => setFormState(prev => ({ ...prev, gameStoryTheme: theme }))}
+                onCustomStoryThemeChange={val => setFormState(prev => ({ ...prev, customStoryTheme: val }))}
               />
             )}
 

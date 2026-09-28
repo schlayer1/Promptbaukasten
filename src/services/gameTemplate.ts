@@ -16,7 +16,8 @@ export interface BuildGameOptions {
   vocabulary?: { term: string; explanation: string }[];
   gameMode?: 'quiz' | 'memory' | 'order';
   gameSocialMode?: 'solo' | 'duell' | 'escape';
-  gameStoryTheme?: 'neutral' | 'detective' | 'space' | 'alchemy';
+  gameStoryTheme?: 'neutral' | 'detective' | 'space' | 'alchemy' | 'custom';
+  customStoryTheme?: string;
   orderSequence?: string[];
   escapeCode?: string;
 }
@@ -32,6 +33,7 @@ export function buildSelfContainedGameHtml({
   gameMode = 'quiz',
   gameSocialMode = 'solo',
   gameStoryTheme = 'neutral',
+  customStoryTheme = '',
   orderSequence = [],
   escapeCode = '4829'
 }: BuildGameOptions): string {
@@ -94,6 +96,18 @@ export function buildSelfContainedGameHtml({
       --card-bg: #ffffff;
       --theme-title-prefix: "Labor-Mission";
       --theme-icon: "🧪";
+    `;
+  } else if (gameStoryTheme === 'custom' && customStoryTheme && customStoryTheme.trim().length > 0) {
+    themeStyles = `
+      --primary: #581c87;
+      --primary-dark: #3b0764;
+      --primary-light: #f3e8ff;
+      --secondary: #7e22ce;
+      --accent: #d946ef;
+      --bg-grad: linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%);
+      --card-bg: #ffffff;
+      --theme-title-prefix: "${escapeHtml(customStoryTheme.trim())}";
+      --theme-icon: "✨";
     `;
   }
 

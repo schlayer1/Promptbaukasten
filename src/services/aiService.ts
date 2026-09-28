@@ -104,6 +104,7 @@ export function buildDidacticPrompt(form: GeneratorFormState): { systemPrompt: s
     'Einzelspieler-Modus mit Ehrenurkunde';
 
   const storyThemeDesc =
+    form.gameStoryTheme === 'custom' && form.customStoryTheme?.trim() ? `Individuelle Rahmenhandlung der Lehrkraft: "${form.customStoryTheme.trim()}"` :
     form.gameStoryTheme === 'detective' ? 'Detektiv-Fall (Spurensuche, Indizien analysieren, Täter überführen)' :
     form.gameStoryTheme === 'space' ? 'Weltraum-Expedition (Raumschiff-Crew auf Erkundung)' :
     form.gameStoryTheme === 'alchemy' ? 'Labor-Rettung (Gefahrgut neutralisieren & Formel entschlüsseln)' :
@@ -121,7 +122,7 @@ Pädagogische Leitlinien:
   * AFB III (Reflexion, Werturteil & Gestaltung): z.B. Beurteilen, Stellung nehmen, Gestalten
 - Schülergerechte Sprache für Regelschüler, motivierend, alltagsnah und lebensweltbezogen
 ${form.inclusionMode ? '- FÖRDERMODUS & DaZ AKTIV: Verwende Leichte/Einfache Sprache, kurze Sätze, markante Zwischenüberschriften und erstelle einen integrierten Fach-Wortspeicher mit einfachen Worterklärungen!' : ''}
-${form.includeMisconceptions ? '- DIDAKTISCHER FEHLKONZEPT-FOKUS AKTIV: Die falschen Antwortmöglichkeiten (Distraktoren) MÜSSEN gezielt typische Denkfehler und Schüler-Mythen der Klassenstufe ' + form.gradeLevel + ' aufgreifen. In "explanation" muss kurz erläutert werden, welcher Denkfehler hinter der falschen Option steckt!' : ''}`;
+${form.includeMisconceptions ? `- DIDAKTISCHER FEHLKONZEPT-FOKUS AKTIV: Die falschen Antwortmöglichkeiten (Distraktoren) MÜSSEN gezielt typische Denkfehler und Schüler-Mythen der Klassenstufe ${form.gradeLevel} aufgreifen.${form.customMisconceptions?.trim() ? ` Beachte insbesondere folgende vorgegebene Schülerfalle: "${form.customMisconceptions.trim()}".` : ''} In "explanation" muss kurz erläutert werden, welcher Denkfehler hinter der falschen Option steckt!` : ''}`;
 
   const userPrompt = `Erstelle eine vollständige, hochqualitative Ausarbeitung für folgendes Unterrichtsszenario:
 
@@ -310,6 +311,7 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
     gameMode: form.gameMode || 'quiz',
     gameSocialMode: form.gameSocialMode || 'solo',
     gameStoryTheme: form.gameStoryTheme || 'neutral',
+    customStoryTheme: form.customStoryTheme || '',
     orderSequence,
     escapeCode: escapeCode || '4829'
   });
