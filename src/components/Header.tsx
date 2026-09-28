@@ -106,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
               <select
                 value={selectedProvider}
                 onChange={e => onSelectProvider(e.target.value as AiProvider)}
-                className="text-xs font-semibold bg-slate-100 border border-slate-300 rounded-xl px-2 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-school-primary"
+                className="text-base sm:text-xs font-semibold bg-slate-100 border border-slate-300 rounded-xl px-2 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-school-primary"
               >
                 {providers.map(p => (
                   <option key={p} value={p}>

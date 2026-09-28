@@ -38,7 +38,7 @@ export const StepActionButtons: React.FC<StepActionButtonsProps> = ({
             value={model || cfg.defaultModel}
             onChange={e => onModelChange(e.target.value)}
             disabled={isGenerating}
-            className="text-xs font-semibold px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-school-primary"
+            className="text-base sm:text-xs font-semibold px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-school-primary"
           >
             {openrouterPreset && openrouterPreset !== '@preset/freie-modelle' && (
               <option value="custom-preset">

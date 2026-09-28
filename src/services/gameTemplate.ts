@@ -454,7 +454,7 @@ export function buildSelfContainedGameHtml({
       line-height: 1.45;
       animation: fadeIn 0.3s ease;
     }
-    .btn-next {
+    .btn-next, .btn-finish-action {
       width: 100%;
       padding: 0.9rem;
       background: var(--primary);
@@ -465,9 +465,9 @@ export function buildSelfContainedGameHtml({
       font-weight: 800;
       cursor: pointer;
       margin-top: 0.85rem;
-      transition: background 0.2s;
+      transition: background 0.2s, opacity 0.2s;
     }
-    .btn-next:hover { opacity: 0.9; }
+    .btn-next:hover, .btn-finish-action:hover { opacity: 0.9; }
 
     /* FINISH SCREEN & CERTIFICATE */
     .finish-screen {
@@ -1040,8 +1040,8 @@ export function buildSelfContainedGameHtml({
       html += '  </div>';
 
       html += '  <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">';
-      html += '    <button class="btn-next" style="width:auto; padding:0.7rem 1.5rem;" onclick="window.print()">🖨️ Urkunde drucken</button>';
-      html += '    <button class="btn-next" style="width:auto; padding:0.7rem 1.5rem; background:#64748b;" onclick="location.reload()">🔄 Nochmal spielen</button>';
+      html += '    <button class="btn-finish-action" style="width:auto; padding:0.7rem 1.5rem;" onclick="window.print()">🖨️ Urkunde drucken</button>';
+      html += '    <button class="btn-finish-action" style="width:auto; padding:0.7rem 1.5rem; background:#64748b;" onclick="location.reload()">🔄 Nochmal spielen</button>';
       html += '  </div>';
       html += '</div>';
 
