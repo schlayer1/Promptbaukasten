@@ -389,19 +389,31 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
         onResetForm={handleResetForm}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-[1760px] 2xl:max-w-[1920px] w-full mx-auto p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           {/* LINK SPALTE: BUILDER FORM (5 Spalten auf Desktop) */}
-          <div className="lg:col-span-5 space-y-4 bg-white p-5 sm:p-6 rounded-2xl border border-school-border shadow-soft">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="lg:col-span-5 space-y-4 bg-white p-5 sm:p-6 rounded-2xl border border-school-border shadow-soft lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 sticky top-0 bg-white/95 backdrop-blur-xs z-10 -mx-1 px-1">
               <h2 className="font-extrabold text-base text-school-textMain flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-school-primary" />
                 Unterrichts-Konfigurator
               </h2>
-              <span className="text-[11px] font-semibold text-slate-400">
-                Schritt-für-Schritt Flow
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleGenerateWithAi}
+                  disabled={isGenerating}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-school-primary hover:bg-school-primaryDark active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition"
+                  title="Unterrichtsmaterial & Lernspiel sofort erstellen"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+                  <span>{isGenerating ? 'Erstellt...' : 'Erstellen'}</span>
+                </button>
+                <span className="text-[11px] font-semibold text-slate-400 hidden xl:inline">
+                  Schritt-Flow
+                </span>
+              </div>
             </div>
 
             {/* ERROR BANNER IF ANY */}

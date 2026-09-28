@@ -73,7 +73,7 @@ export const TabWorksheetPrint: React.FC<TabWorksheetPrintProps> = ({
       </div>
 
       {/* PRINT-OPTIMIZED DIN-A4 SHEET */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-float p-6 sm:p-10 max-w-4xl mx-auto print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-float p-6 sm:p-10 max-w-4xl xl:max-w-5xl mx-auto print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none">
         
         {/* DIN-A4 SCHULISCHER KOPF */}
         <div className="border-b-2 border-school-primary pb-4 mb-6">
@@ -173,10 +173,16 @@ function formatWorksheetHtml(markdown: string, showSolutions: boolean): string {
     .replace(/\n\n/gim, '</p><p class="mb-2">')
     .replace(/^\- (.*$)/gim, '<li class="ml-4 list-disc">$1</li>');
 
-  // Highlight Level Badges
-  html = html.replace(/NIVEAU GRÜN|AFB I/gi, '<span class="inline-block bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs font-bold mr-1">NIVEAU GRÜN (AFB I)</span>');
-  html = html.replace(/NIVEAU GELB|AFB II/gi, '<span class="inline-block bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-bold mr-1">NIVEAU GELB (AFB II)</span>');
-  html = html.replace(/NIVEAU ROT|AFB III/gi, '<span class="inline-block bg-rose-100 text-rose-800 px-2 py-0.5 rounded text-xs font-bold mr-1">NIVEAU ROT (AFB III)</span>');
+  // Highlight Level Badges cleanly without duplicate nested brackets
+  html = html.replace(/NIVEAU GRÜN(?:\s*\(\s*AFB I\s*[-–]?\s*([^)]*)\))?/gi, (_, extra) => {
+    return `<span class="inline-block bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-lg text-xs font-bold mr-1">NIVEAU GRÜN (AFB I)</span>${extra ? ' – ' + extra.trim() : ''}`;
+  });
+  html = html.replace(/NIVEAU GELB(?:\s*\(\s*AFB II\s*[-–]?\s*([^)]*)\))?/gi, (_, extra) => {
+    return `<span class="inline-block bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-lg text-xs font-bold mr-1">NIVEAU GELB (AFB II)</span>${extra ? ' – ' + extra.trim() : ''}`;
+  });
+  html = html.replace(/NIVEAU ROT(?:\s*\(\s*AFB III\s*[-–]?\s*([^)]*)\))?/gi, (_, extra) => {
+    return `<span class="inline-block bg-rose-100 text-rose-800 px-2.5 py-0.5 rounded-lg text-xs font-bold mr-1">NIVEAU ROT (AFB III)</span>${extra ? ' – ' + extra.trim() : ''}`;
+  });
 
   // Solution block handling
   if (!showSolutions) {

@@ -146,7 +146,7 @@ export function buildSelfContainedGameHtml({
 
     .game-container {
       width: 100%;
-      max-width: 720px;
+      max-width: 860px;
       background: var(--card-bg);
       border-radius: 1.5rem;
       border: 1px solid var(--border);

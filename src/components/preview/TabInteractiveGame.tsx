@@ -147,7 +147,7 @@ export const TabInteractiveGame: React.FC<TabInteractiveGameProps> = ({
               <Maximize2 className="w-3.5 h-3.5" /> Vollbild
             </button>
           </div>
-          <div className="w-full h-[620px] bg-slate-50 relative">
+          <div className="w-full h-[620px] xl:h-[720px] 2xl:h-[800px] bg-slate-50 relative">
             <iframe
               srcDoc={gameHtml}
               title="Interaktives Lernspiel"
