@@ -7,10 +7,14 @@ import {
   Sparkles, 
   AlertCircle,
   CheckCircle2,
-  Share2
+  Share2,
+  CloudUpload,
+  BookOpen
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { ApiKeyModal } from './components/ApiKeyModal';
+import { PinLoginModal } from './components/auth/PinLoginModal';
+import { CloudLibraryModal } from './components/library/CloudLibraryModal';
 import { ToastContainer, ToastMessage } from './components/common/Toast';
 import { StepFormatSelect } from './components/builder/StepFormatSelect';
 import { StepCurriculumSelect } from './components/builder/StepCurriculumSelect';
@@ -26,8 +30,11 @@ import { TabPromptHub } from './components/preview/TabPromptHub';
 import { AiProvider } from './types/ai';
 import { GradeLevel } from './types/curriculum';
 import { GeneratorFormState, ParsedGenerationOutput, ActiveOutputTab } from './types/generator';
+import { CloudMaterial } from './types/cloud';
 import { THUERINGEN_SUBJECTS } from './data/thueringenCurriculum';
 import { PROVIDER_CONFIGS } from './data/defaultPresets';
+import { useAuth } from './context/AuthContext';
+import { saveMaterialToCloud } from './services/firebase';
 import { 
   buildDidacticPrompt, 
   executeGeneration, 
@@ -149,7 +156,12 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
 
   // --- UI DIALOGS & TOASTS ---
   const [isKeyModalOpen, setIsKeyModalOpen] = useState<boolean>(false);
+  const [isCloudLibraryOpen, setIsCloudLibraryOpen] = useState<boolean>(false);
+  const [isSavingToCloud, setIsSavingToCloud] = useState<boolean>(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // --- AUTH CONTEXT ---
+  const { currentUser, isAuthenticated, openLoginModal } = useAuth();
 
   const addToast = (title: string, message?: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -268,16 +280,93 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
     }
   };
 
+  // --- CLOUD MATERIAL SAVE & LOAD HANDLERS ---
+  const handleSaveToCloud = async () => {
+    if (!isAuthenticated || !currentUser) {
+      openLoginModal();
+      addToast('Anmeldung erforderlich', 'Bitte melde dich mit deiner PIN an, um Materialien in der Schul-Cloud zu speichern.', 'info');
+      return;
+    }
+
+    setIsSavingToCloud(true);
+    try {
+      const currentSub = THUERINGEN_SUBJECTS.find(s => s.id === formState.subjectId) || THUERINGEN_SUBJECTS[0];
+      const currentTop = currentSub.topics.find(t => t.id === formState.topicId) || currentSub.topics[0];
+      const title = `${currentSub.name}: ${currentTop?.title || 'Unterrichtseinheit'}`;
+
+      const materialData: Omit<CloudMaterial, 'id' | 'createdAt'> = {
+        title,
+        format: formState.format,
+        subjectId: formState.subjectId,
+        subjectName: currentSub.name,
+        gradeLevel: formState.gradeLevel,
+        doubleGrade: formState.gradeLevel <= 6 ? '5/6' : formState.gradeLevel <= 8 ? '7/8' : '9/10',
+        topicTitle: currentTop?.title || 'Unterrichtsthema',
+        customTopicDetail: formState.customTopicDetail,
+        worksheetMarkdown: output.worksheetMarkdown,
+        rubricMarkdown: output.rubricMarkdown,
+        vocabulary: output.vocabulary,
+        gameHtml: output.gameHtml,
+        giftExport: output.giftExport,
+        promptText: output.promptText,
+        authorId: currentUser.id,
+        authorName: currentUser.name,
+        sharedWithSchool: true,
+        updatedAt: Date.now()
+      };
+
+      await saveMaterialToCloud(materialData);
+      addToast(
+        'In Schul-Cloud gespeichert!',
+        `"${title}" steht nun dem Kollegium in der Schul-Bibliothek zur Verfügung.`,
+        'success'
+      );
+    } catch (err: any) {
+      console.error('Firebase save error:', err);
+      addToast('Speicherfehler', err.message || 'Konnte nicht in Firebase gespeichert werden.', 'error');
+    } finally {
+      setIsSavingToCloud(false);
+    }
+  };
+
+  const handleLoadMaterialFromCloud = (material: CloudMaterial) => {
+    setOutput({
+      worksheetMarkdown: material.worksheetMarkdown || '',
+      rubricMarkdown: material.rubricMarkdown || '',
+      vocabulary: material.vocabulary || [],
+      gameHtml: material.gameHtml || '',
+      giftExport: material.giftExport || '',
+      promptText: material.promptText || '',
+      rawResponse: '',
+      generatedAt: new Date(material.createdAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    });
+
+    setFormState(prev => ({
+      ...prev,
+      format: material.format || prev.format,
+      subjectId: material.subjectId || prev.subjectId,
+      gradeLevel: (material.gradeLevel as GradeLevel) || prev.gradeLevel,
+      customTopicDetail: material.customTopicDetail || ''
+    }));
+
+    if (material.format === 'lernspiel' || (material.gameHtml && material.gameHtml.length > 500)) {
+      setActiveTab('game');
+    } else {
+      setActiveTab('worksheet');
+    }
+  };
+
   const currentSubject = THUERINGEN_SUBJECTS.find(s => s.id === formState.subjectId) || THUERINGEN_SUBJECTS[0];
   const currentTopic = currentSubject.topics.find(t => t.id === formState.topicId) || currentSubject.topics[0];
   const { systemPrompt, userPrompt } = buildDidacticPrompt(formState);
 
   return (
-    <div className="min-h-screen bg-school-surface flex flex-col font-sans">
+    <div className="min-h-screen bg-school-surface flex flex-col font-sans pb-16 lg:pb-0">
       <Header
         selectedProvider={selectedProvider}
         onSelectProvider={setSelectedProvider}
         onOpenKeyModal={() => setIsKeyModalOpen(true)}
+        onOpenLibrary={() => setIsCloudLibraryOpen(true)}
         onResetForm={handleResetForm}
       />
 
@@ -355,67 +444,80 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
           </div>
 
           {/* RECHTE SPALTE: DREIGLEISIGE AUSGABE (7 Spalten auf Desktop) */}
-          <div className="lg:col-span-7 space-y-4">
+          <div id="output-pane" className="lg:col-span-7 space-y-4 scroll-mt-20">
             
-            {/* TABS LEISTE */}
-            <div className="bg-white p-2 rounded-2xl border border-school-border shadow-soft flex items-center justify-between gap-1 overflow-x-auto">
-              <div className="flex items-center gap-1.5 min-w-max">
+            {/* TABS & CLOUD SAVE LEISTE */}
+            <div className="bg-white p-2.5 rounded-2xl border border-school-border shadow-soft flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 max-w-full py-0.5">
                 <button
                   onClick={() => setActiveTab('game')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition ${
+                  className={`px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shrink-0 transition ${
                     activeTab === 'game'
                       ? 'bg-school-primary text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
                   <Gamepad2 className="w-4 h-4" />
-                  <span>1. Interaktives Lernspiel</span>
+                  <span>1. Lernspiel</span>
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20">HTML5</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('worksheet')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition ${
+                  className={`px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shrink-0 transition ${
                     activeTab === 'worksheet'
                       ? 'bg-school-primary text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
                   <FileText className="w-4 h-4" />
-                  <span>2. Druckfertiges Arbeitsblatt</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">DIN-A4</span>
+                  <span>2. Arbeitsblatt</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">A4</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('rubric')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition ${
+                  className={`px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shrink-0 transition ${
                     activeTab === 'rubric'
                       ? 'bg-school-primary text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
                   <Award className="w-4 h-4" />
-                  <span>3. Bewertungsraster</span>
+                  <span>3. Raster</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('prompt')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition ${
+                  className={`px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shrink-0 transition ${
                     activeTab === 'prompt'
                       ? 'bg-school-primary text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
                   <Terminal className="w-4 h-4" />
-                  <span>4. Prompt-Hub</span>
+                  <span>4. Prompt</span>
                 </button>
               </div>
 
-              {output.generatedAt && (
-                <span className="text-[11px] text-slate-400 font-semibold pr-2 hidden sm:inline">
-                  Stand: {output.generatedAt} Uhr
-                </span>
-              )}
+              {/* SAVE TO CLOUD BUTTON & TIMESTAMP */}
+              <div className="flex items-center gap-2 shrink-0 ml-auto">
+                {output.generatedAt && (
+                  <span className="text-[11px] text-slate-400 font-semibold hidden sm:inline">
+                    {output.generatedAt} Uhr
+                  </span>
+                )}
+
+                <button
+                  onClick={handleSaveToCloud}
+                  disabled={isSavingToCloud}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-school-primary hover:bg-school-primaryDark text-white text-xs font-bold transition shadow-sm"
+                  title="Aktuelles Material in der Firebase Cloud der Heimbürgeschule für alle Kollegen speichern"
+                >
+                  <CloudUpload className={`w-3.5 h-3.5 ${isSavingToCloud ? 'animate-bounce' : ''}`} />
+                  <span>{isSavingToCloud ? 'Speichert...' : 'In Cloud speichern'}</span>
+                </button>
+              </div>
             </div>
 
             {/* TAB CONTENTS */}
@@ -461,6 +563,47 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
 
         </div>
       </main>
+
+      {/* MOBILE STICKY BOTTOM ACTION BAR */}
+      <div className="lg:hidden fixed bottom-3 left-3 right-3 z-30 bg-slate-900/90 backdrop-blur-md text-white p-2 rounded-2xl shadow-2xl flex items-center justify-between gap-2 border border-slate-700/80">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-200"
+          >
+            Baukasten
+          </button>
+          <button
+            onClick={() => {
+              const el = document.getElementById('output-pane');
+              el?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-200"
+          >
+            Vorschau
+          </button>
+        </div>
+
+        <button
+          onClick={handleGenerateWithAi}
+          disabled={isGenerating}
+          className="flex-1 py-2 px-3 bg-school-primary hover:bg-school-primaryDark active:scale-95 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-md transition"
+        >
+          <Sparkles className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+          <span>{isGenerating ? 'Generiert...' : 'Erstellen'}</span>
+        </button>
+      </div>
+
+      {/* PIN LOGIN MODAL */}
+      <PinLoginModal onShowToast={addToast} />
+
+      {/* CLOUD LIBRARY MODAL */}
+      <CloudLibraryModal
+        isOpen={isCloudLibraryOpen}
+        onClose={() => setIsCloudLibraryOpen(false)}
+        onLoadMaterial={handleLoadMaterialFromCloud}
+        onShowToast={addToast}
+      />
 
       {/* API KEY SETTINGS MODAL */}
       <ApiKeyModal

@@ -51,7 +51,7 @@ export const StepCurriculumSelect: React.FC<StepCurriculumSelectProps> = ({
           <select
             value={subjectId}
             onChange={e => onSubjectChange(e.target.value)}
-            className="w-full text-xs font-semibold px-3 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary transition text-slate-800 shadow-sm"
+            className="w-full text-base sm:text-xs font-semibold px-3 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary transition text-slate-800 shadow-sm"
           >
             {SUBJECT_CATEGORIES.map(cat => {
               const subjectsInCat = THUERINGEN_SUBJECTS.filter(s => s.category === cat.category);
@@ -80,7 +80,7 @@ export const StepCurriculumSelect: React.FC<StepCurriculumSelectProps> = ({
                 key={g}
                 type="button"
                 onClick={() => onGradeChange(g)}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
+                className={`flex-1 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition ${
                   gradeLevel === g
                     ? 'bg-school-primary text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
@@ -104,7 +104,7 @@ export const StepCurriculumSelect: React.FC<StepCurriculumSelectProps> = ({
           <select
             value={currentTopic?.id || ''}
             onChange={e => onTopicChange(e.target.value)}
-            className="w-full text-xs font-semibold px-3 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary transition text-slate-800 shadow-sm"
+            className="w-full text-base sm:text-xs font-semibold px-3 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary transition text-slate-800 shadow-sm"
           >
             {applicableTopics.map(t => (
               <option key={t.id} value={t.id}>
@@ -148,7 +148,7 @@ export const StepCurriculumSelect: React.FC<StepCurriculumSelectProps> = ({
           value={customTopicDetail}
           onChange={e => onCustomDetailChange(e.target.value)}
           placeholder="z. B. Schwerpunkt auf Experimente zur Fotosynthese, Textabschnitt Zeile 14-48, Stationenlernen..."
-          className="w-full text-xs px-3 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary transition placeholder:text-slate-400 text-slate-800 shadow-sm"
+          className="w-full text-base sm:text-xs px-3 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary transition placeholder:text-slate-400 text-slate-800 shadow-sm"
         />
       </div>
     </div>

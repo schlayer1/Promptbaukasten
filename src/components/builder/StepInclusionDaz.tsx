@@ -84,7 +84,7 @@ export const StepInclusionDaz: React.FC<StepInclusionDazProps> = ({
           <select
             value={targetDurationMinutes}
             onChange={e => onDurationChange(Number(e.target.value))}
-            className="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary text-slate-800"
+            className="w-full text-base sm:text-xs font-semibold px-3 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary text-slate-800"
           >
             <option value={20}>20 Minuten (Kurztest / Einstieg)</option>
             <option value={45}>45 Minuten (Einzelstunde)</option>
@@ -103,7 +103,7 @@ export const StepInclusionDaz: React.FC<StepInclusionDazProps> = ({
             value={additionalInstructions}
             onChange={e => onAdditionalInstructionsChange(e.target.value)}
             placeholder="z.B. Für Partnerarbeit konzipieren, mit Beispielen aus Thüringen..."
-            className="w-full text-xs px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary text-slate-800 placeholder:text-slate-400"
+            className="w-full text-base sm:text-xs px-3 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary text-slate-800 placeholder:text-slate-400"
           />
         </div>
       </div>
