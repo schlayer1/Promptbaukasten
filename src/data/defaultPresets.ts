@@ -1,0 +1,98 @@
+import { TaskFormat } from '../types/generator';
+import { ProviderConfig } from '../types/ai';
+
+export const TASK_FORMATS: TaskFormat[] = [
+  {
+    id: 'arbeitsblatt',
+    title: 'Differenziertes Arbeitsblatt',
+    subtitle: '3 Niveaustufen & DIN-A4 Drucklayout',
+    description: 'Strukturiertes Arbeitsblatt mit schulspezifischer Kopfzeile, 3 Niveaustufen (Grün, Gelb, Rot), DaZ-Wortspeicherbox und Lösungsteil.',
+    icon: 'FileText',
+    tag: 'Druckfertig & PDF'
+  },
+  {
+    id: 'lernspiel',
+    title: 'Interaktives HTML-Lernspiel',
+    subtitle: 'Autarkes Single-File HTML für Tablets',
+    description: 'Interaktives Quiz- & Zuordnungsspiel mit Soundeffekten (Web Audio API), Offline-Sprachausgabe (Web Speech) und Punkte-Zertifikat.',
+    icon: 'Gamepad2',
+    tag: '100% Offline Tablet-Ready'
+  },
+  {
+    id: 'test',
+    title: 'Test / Klassenarbeit',
+    subtitle: 'Mit Bepunktung & Erwartungshorizont',
+    description: 'Prüfungsbogen mit genauer Punkteverteilung nach Thüringer Notenschlüssel, Zweispaltigkeit und Bewertungsmatrix für die Hand der Lehrkraft.',
+    icon: 'CheckSquare',
+    tag: 'Mit Notenskala'
+  },
+  {
+    id: 'einstieg',
+    title: 'Einstieg & Stundeneröffnung',
+    subtitle: 'Impuls, Problemstellung & Vorwissen',
+    description: 'Aktivierender Einstieg (Kognitiver Konflikt, Bildimpuls, Silentium-Rätsel) inklusive vorbereitetem Tafelbild und Lernzielformulierung.',
+    icon: 'Sparkles',
+    tag: 'Didaktischer Impuls'
+  }
+];
+
+export const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
+  gemini: {
+    id: 'gemini',
+    name: 'Google Gemini',
+    badge: 'Standard / Großer Kontext',
+    description: 'Empfohlen für umfangreiche Unterrichtsmaterialien & detailreiche Lernspiele. Hohe Generierungsqualität.',
+    freeTierInfo: 'Kostenloses Kontingent via Google AI Studio (15 Abfragen/Min kostenlos).',
+    apiKeyUrl: 'https://aistudio.google.com/app/apikey',
+    defaultModel: 'gemini-2.0-flash',
+    availableModels: [
+      { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Sehr schnell & präzise)', recommended: true },
+      { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Bewährt & stabil)' },
+      { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Sehr hohe logische Tiefe)' }
+    ],
+    envKeyName: 'VITE_GEMINI_API_KEY'
+  },
+  groq: {
+    id: 'groq',
+    name: 'Groq Cloud',
+    badge: 'Ultra-schnell (1-3 Sek.)',
+    description: 'Blitzschnelle Inferenz auf LPU-Hardware. Perfekt für spontane Materialerstellung im laufenden Unterricht.',
+    freeTierInfo: 'Kostenloser Tier via Groq Console verfügbar.',
+    apiKeyUrl: 'https://console.groq.com/keys',
+    defaultModel: 'llama-3.3-70b-versatile',
+    availableModels: [
+      { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile (Empfehlung)', recommended: true },
+      { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant (Extrem schnell)' }
+    ],
+    envKeyName: 'VITE_GROQ_API_KEY'
+  },
+  mistral: {
+    id: 'mistral',
+    name: 'Mistral AI',
+    badge: 'EU-Datenschutz (Paris)',
+    description: 'Europäischer Spitzen-Anbieter mit Servern in der EU. Hohe Datenschutzkonformität für Schulen.',
+    freeTierInfo: 'Kostenlose Test-Kontingente via Mistral La Plateforme.',
+    apiKeyUrl: 'https://console.mistral.ai/api-keys/',
+    defaultModel: 'mistral-small-latest',
+    availableModels: [
+      { id: 'mistral-small-latest', label: 'Mistral Small (Ausgewogen & schnell)', recommended: true },
+      { id: 'codestral-latest', label: 'Codestral (Exzellent für HTML/Code)' }
+    ],
+    envKeyName: 'VITE_MISTRAL_API_KEY'
+  },
+  openrouter: {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    badge: 'Universal-Router',
+    description: 'Bündelt dutzende Modelle, darunter auch vollständig kostenlose Open-Source-Modelle.',
+    freeTierInfo: 'Kostenlose Modelle mit der Endung :free ohne Kreditkarte nutzbar.',
+    apiKeyUrl: 'https://openrouter.ai/keys',
+    defaultModel: 'meta-llama/llama-3.3-70b-instruct:free',
+    availableModels: [
+      { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B Instruct (Free)', recommended: true },
+      { id: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash Exp (Free)' },
+      { id: 'deepseek/deepseek-r1:free', label: 'DeepSeek R1 (Free)' }
+    ],
+    envKeyName: 'VITE_OPENROUTER_API_KEY'
+  }
+};
