@@ -4,12 +4,21 @@ description: >-
   Offizielle Referenzarchitektur für die Google Gemini API-Anbindung in allen Schul-Webapplikationen 
   der Heimbürgeschule Kahla (Appportal, Kahoot, Menti, Translatorapp, Promptbaukasten).
   Dokumentiert verifizierte Flash-Modelle, schließt veraltete/eingestellte Modelle (1.5, 2.0, 2.5) 
-  konsequent aus und liefert die bewährte Kaskaden-Logik mit Schulschlüssel-Fallback.
+  konsequent aus, liefert die bewährte Kaskaden-Logik mit Schulschlüssel-Fallback und regelt
+  den schlanken Gemini-Standard sowie den Vercel-Environment-Setup-Workflow.
 ---
 
 # Google Gemini API Referenzstandard für Schul-Webapplikationen
 
 Dieses Regelwerk und Moduldesign verhindert typische Modellfehler (`404 Not Found`, `410 Gone`, `429 Rate Limit`, `"no longer available to new users"`), die auftreten, wenn veraltete Modellbezeichner in neuen Projekten hartcodiert werden.
+
+---
+
+## 0. Grundsatz: Schlanke Modellauswahl (Gemini by Default)
+
+1. **Gemini als Standard**: Sofern in der Nutzeranfrage keine alternativen Provider (wie Groq, Mistral oder OpenRouter) explizit genannt werden, wird die Modellauswahl in Code und UI **strikt auf Google Gemini** beschränkt.
+2. **Kein unnötiger Provider-Ballast**: Keine überflüssigen Auswahldropdowns oder Tabs für Drittanbieter-APIs einbauen, wenn der Nutzer lediglich eine funktionierende KI-Generierung für die Schule benötigt.
+3. **Fokus**: Maximale Übersichtlichkeit und Einfachheit für Lehrkräfte und Schüler.
 
 ---
 
@@ -58,7 +67,7 @@ export const DEFAULT_SCHOOL_GEMINI_KEY = decodeDefaultKey();
 
 ## 3. Die Ausfall-Kaskade (`executeWithCascade`)
 
-Niemals nur einen einzigen Modellnamen aufrufen! Wenn Google auf einem Server hohe Last (503) oder ein Rate-Limit (429) meldet, schaltet die Kaskade **stillschweigend innerhalb von Millisekunden auf das nächste Modell** um:
+Niemals nur einen einzigen Modellnamen aufrufen! Wenn Google auf einem Server hohe Last (`503`), ein Rate-Limit (`429`) oder Modelländerungen (`404`) meldet, schaltet die Kaskade **stillschweigend innerhalb von Millisekunden auf das nächste Modell** um:
 
 ```typescript
 export const CANDIDATE_FLASH_MODELS = [
@@ -110,8 +119,25 @@ for (const model of candidateModels) {
 
 ---
 
-## 4. Checkliste für neue Module in Antigravity
+## 4. Verbindlicher Abschluss-Schritt: Vercel Handover Workflow
+
+Sobald die KI-Integration in einem Projekt technisch implementiert und lauffähig ist, muss der Assistent den Nutzer am Ende des Tasks **aktiv und unaufgefordert** nach dem API-Key fragen und die Schritte zur Hinterlegung auf Vercel erläutern:
+
+1. **Nutzer-Abfrage**:
+   > *"Die technische KI-Anbindung ist eingerichtet. Möchtest du deinen eigenen Gemini API-Key direkt hinterlegen, oder soll ich dir die Schritte für Vercel zeigen?"*
+
+2. **Vercel-Anleitung**:
+   - Gehe im Vercel-Dashboard deines Projekts auf: **Settings** $\rightarrow$ **Environment Variables**.
+   - **Key**: `VITE_GEMINI_API_KEY`
+   - **Value**: `[Dein Gemini API-Schlüssel von aistudio.google.com]`
+   - **Environment**: Alle Haken setzen (`Production`, `Preview`, `Development`).
+   - Anschließend unter **Deployments** beim neuesten Deployment auf die drei Punkte (...) klicken und **Redeploy** wählen.
+
+---
+
+## 5. Checkliste für neue Module in Antigravity
 1. Wurde `DEFAULT_SCHOOL_GEMINI_KEY` als Basis-Fallback eingebaut?
 2. Wurde `gemini-flash-lite-latest` als primäres Modell gewählt?
 3. Wurden alte 1.5er und 2.0er / 2.5er Namen aus Dropdowns und Arrays verbannt?
-4. Ist `maxOutputTokens` auf maximal 4096 bis 6000 gesetzt?
+4. Wurde die Modellauswahl schlank auf Gemini gehalten (sofern keine Drittanbieter gefordert waren)?
+5. Wurde nach Abschluss aktiv nach dem API-Key und Vercel-Setup gefragt?
