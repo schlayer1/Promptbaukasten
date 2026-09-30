@@ -115,7 +115,7 @@ export function buildSelfContainedGameHtml({
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)} - Interaktives Lernspiel</title>
   <style>
     :root {

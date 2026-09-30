@@ -13,12 +13,16 @@ import {
   Lightbulb,
   Sliders,
   Video,
-  Shuffle
+  Shuffle,
+  Palette,
+  Paintbrush
 } from 'lucide-react';
 import { 
   StationModulesConfig, 
   StationSpecialType, 
-  StationCustomizationConfig 
+  StationCustomizationConfig,
+  HtmlDesignTheme,
+  HtmlBgPattern
 } from '../../types/generator';
 
 interface StepStationOptionsProps {
@@ -26,10 +30,16 @@ interface StepStationOptionsProps {
   stationSpecialType: StationSpecialType;
   stationInclusionTipps: boolean;
   stationCustomization: StationCustomizationConfig;
+  htmlDesignTheme: HtmlDesignTheme;
+  customHtmlDesignPrompt: string;
+  htmlBgPattern: HtmlBgPattern;
   onModulesChange: (modules: StationModulesConfig) => void;
   onSpecialTypeChange: (type: StationSpecialType) => void;
   onInclusionTippsToggle: (enabled: boolean) => void;
   onCustomizationChange: (customization: StationCustomizationConfig) => void;
+  onDesignThemeChange: (theme: HtmlDesignTheme) => void;
+  onCustomDesignPromptChange: (prompt: string) => void;
+  onBgPatternChange: (pattern: HtmlBgPattern) => void;
 }
 
 export const StepStationOptions: React.FC<StepStationOptionsProps> = ({
@@ -37,10 +47,16 @@ export const StepStationOptions: React.FC<StepStationOptionsProps> = ({
   stationSpecialType,
   stationInclusionTipps,
   stationCustomization,
+  htmlDesignTheme,
+  customHtmlDesignPrompt,
+  htmlBgPattern,
   onModulesChange,
   onSpecialTypeChange,
   onInclusionTippsToggle,
-  onCustomizationChange
+  onCustomizationChange,
+  onDesignThemeChange,
+  onCustomDesignPromptChange,
+  onBgPatternChange
 }) => {
   const [showAdvancedParams, setShowAdvancedParams] = useState(true);
 
@@ -427,6 +443,77 @@ export const StepStationOptions: React.FC<StepStationOptionsProps> = ({
           </select>
         </div>
       )}
+
+      {/* 4. VISUAL DESIGN, THEME & BACKGROUND */}
+      <div className="pt-3 border-t border-sky-200/60 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+            <Palette className="w-3.5 h-3.5 text-school-primary" />
+            <span>Design, Farbwelt & Hintergrund</span>
+          </label>
+          <span className="text-[10px] text-slate-500 font-semibold">Thema- oder Altersgerecht</span>
+        </div>
+
+        {/* THEME SELECTION DROPDOWN */}
+        <div>
+          <select
+            value={htmlDesignTheme}
+            onChange={e => onDesignThemeChange(e.target.value as HtmlDesignTheme)}
+            className="w-full text-base sm:text-xs font-bold px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-school-primary shadow-xs"
+          >
+            <option value="topic-adaptive">🎨 Themen- & Fach-Adaptiv (Empfohlen: passend zum Fach/Thema)</option>
+            <option value="age-primary">🎈 Altersgerecht: Klasse 5/6 (Unterstufe: verspielt, bunte Akzente, weiche Formen)</option>
+            <option value="age-middle">⚡ Altersgerecht: Klasse 7/8 (Mittelstufe: modernes Teal/Indigo, dynamisch)</option>
+            <option value="age-senior">🎓 Altersgerecht: Klasse 9/10 (Oberstufe: sachlich-minimalistisch, Slate/Navy, Fokus)</option>
+            <option value="dark-arcade">🕹️ Dunkles Arcade-Theme (Deep Space / Charcoal mit Neon-Akzenten)</option>
+            <option value="warm-parchment">📜 Historisches Pergament (Warme Buchseiten & Antik-Optik)</option>
+            <option value="custom">✏️ Eigener Gestaltungswunsch (Freitext eingeben...)</option>
+          </select>
+        </div>
+
+        {/* CUSTOM FREITEXT IF SELECTED */}
+        {htmlDesignTheme === 'custom' && (
+          <div className="animate-fadeIn">
+            <input
+              type="text"
+              value={customHtmlDesignPrompt}
+              onChange={e => onCustomDesignPromptChange(e.target.value)}
+              placeholder="z. B. Dschungel mit Tierillustrationen, Römisches Reich mit Säulen, Labor..."
+              className="w-full text-xs font-semibold px-3 py-2 bg-white border border-amber-300 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
+            />
+          </div>
+        )}
+
+        {/* BACKGROUND PATTERN CHIPS */}
+        <div className="bg-white/80 p-2 rounded-xl border border-sky-100 flex items-center justify-between gap-2">
+          <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+            <Paintbrush className="w-3 h-3 text-slate-500" />
+            Hintergrund:
+          </span>
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {[
+              { id: 'auto', label: 'Auto' },
+              { id: 'dots', label: 'Punkte' },
+              { id: 'grid', label: 'Karo' },
+              { id: 'gradient', label: 'Verlauf' },
+              { id: 'minimal', label: 'Clean' }
+            ].map(p => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onBgPatternChange(p.id as HtmlBgPattern)}
+                className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md transition ${
+                  htmlBgPattern === p.id
+                    ? 'bg-school-primary text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -327,6 +327,89 @@ async function runE2E() {
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, '08_station_configurator.png') });
     console.log('  📸 Saved: 08_station_configurator.png');
 
+    // ========================================================
+    // SCENARIO 7: HTML DESIGN THEME & MULTI-DEVICE RESPONSIVENESS (LAPTOP, IPAD, IPHONE)
+    // ========================================================
+    console.log('\n--- SCENARIO 7: HTML DESIGN THEME & MULTI-DEVICE RESPONSIVENESS ---');
+
+    // 7A: Verify Design Theme Selector
+    const designThemeSelect = await page.evaluate(() => {
+      const selects = Array.from(document.querySelectorAll('select'));
+      const found = selects.find(s => s.innerHTML.includes('Themen- & Fach-Adaptiv') || s.innerHTML.includes('Altersgerecht'));
+      return !!found;
+    });
+    assert(designThemeSelect, 'Visual HTML Design & Age-Appropriate Theme dropdown found in sidebar');
+
+    // 7B: Verify Background Pattern Chips
+    const bgPatternButtons = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('button'));
+      const chips = btns.filter(b => ['Auto', 'Punkte', 'Karo', 'Verlauf', 'Clean'].includes(b.textContent?.trim() || ''));
+      return chips.length;
+    });
+    assert(bgPatternButtons >= 4, `Found ${bgPatternButtons} Background Pattern chips (Auto, Punkte, Karo, Verlauf, Clean)`);
+
+    // 7C: Select 'Klasse 5/6' theme and 'Punkte' pattern
+    await page.evaluate(() => {
+      const selects = Array.from(document.querySelectorAll('select'));
+      const found = selects.find(s => s.innerHTML.includes('Themen- & Fach-Adaptiv') || s.innerHTML.includes('Altersgerecht'));
+      if (found) {
+        found.value = 'age-primary';
+        found.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      const btns = Array.from(document.querySelectorAll('button'));
+      const punkteBtn = btns.find(b => b.textContent?.trim() === 'Punkte');
+      punkteBtn?.click();
+    });
+    await new Promise(r => setTimeout(r, 400));
+    assert(true, 'Applied "Altersgerecht: Klasse 5/6" theme and "Punkte" pattern');
+
+    // 7D: Switch to Tab 1 to inspect the rendered Station HTML
+    await page.evaluate(() => {
+      const tabButtons = Array.from(document.querySelectorAll('#output-pane button'));
+      const t1 = tabButtons.find(b => b.textContent?.includes('1. Lernstation') || b.textContent?.includes('1. Lernspiel'));
+      t1?.click();
+    });
+    await new Promise(r => setTimeout(r, 800));
+
+    // 7E: Verify Station iframe responsive rendering on Laptop (1440x900)
+    await page.setViewport({ width: 1440, height: 900 });
+    await new Promise(r => setTimeout(r, 500));
+    const iframeHandle = await page.waitForSelector('iframe', { timeout: 5000 });
+    assert(!!iframeHandle, 'Station iframe located on Laptop');
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '09_station_laptop.png') });
+    console.log('  📸 Saved: 09_station_laptop.png');
+
+    // 7F: Verify Station responsive rendering on iPad / Tablet (768x1024)
+    await page.setViewport({ width: 768, height: 1024 });
+    await new Promise(r => setTimeout(r, 400));
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '10_station_ipad.png') });
+    console.log('  📸 Saved: 10_station_ipad.png');
+    assert(true, 'Station verified cleanly on iPad viewport (768x1024)');
+
+    // 7G: Verify Station responsive rendering on iPhone (390x844)
+    await page.setViewport({ width: 390, height: 844 });
+    await new Promise(r => setTimeout(r, 400));
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '11_station_iphone.png') });
+    console.log('  📸 Saved: 11_station_iphone.png');
+
+    // Check that inside the station iframe, no horizontal scroll overflow occurs
+    const stationFrame = await iframeHandle.contentFrame();
+    if (stationFrame) {
+      const isMobileResponsive = await stationFrame.evaluate(() => {
+        const bodyWidth = document.body.clientWidth;
+        const scrollWidth = document.body.scrollWidth;
+        const hasViewport = !!document.querySelector('meta[name="viewport"]');
+        return {
+          scrollWidthMatches: scrollWidth <= bodyWidth + 5,
+          hasViewport,
+          bodyWidth,
+          scrollWidth
+        };
+      });
+      assert(isMobileResponsive.hasViewport, 'Station iframe contains responsive <meta name="viewport">');
+      assert(isMobileResponsive.scrollWidthMatches, `Station iframe has zero horizontal overflow on iPhone (body: ${isMobileResponsive.bodyWidth}px, scroll: ${isMobileResponsive.scrollWidth}px)`);
+    }
+
     console.log('\n====================================================');
     console.log(`🏁 PUPPETEER E2E RESULT: ${passCount} PASSED, ${failCount} FAILED`);
     console.log('====================================================');

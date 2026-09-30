@@ -216,6 +216,20 @@ Gewünschte Struktur & Umfang (strikt einhalten):
 - 8. Reflexion & Selbsteinschätzung: ${form.stationModules?.reflection !== false ? `AKTIV (inkl. genau ${form.stationCustomization?.youtubeLinkCount || 3} YouTube-Suchbegriffen)` : 'DEAKTIVIERT'}
 ` : ''}
 
+=== GESTALTUNG & HINTERGRUND-DESIGN DER HTML-SEITE ===
+- Visueller Stil: ${
+    form.htmlDesignTheme === 'topic-adaptive' ? 'Themen- & Fach-Adaptiv (visuelle Farb- und Bildmetaphern passend zu Fach & Thema)' :
+    form.htmlDesignTheme === 'age-primary' ? 'Altersgerecht für Klasse 5/6 (spielerische Tonalität, leicht verständliche Sprache, ermutigend, klare Struktur)' :
+    form.htmlDesignTheme === 'age-middle' ? 'Altersgerecht für Klasse 7/8 (modern, zielorientiert, dynamisch, altersangemessene Alltagsbezüge)' :
+    form.htmlDesignTheme === 'age-senior' ? 'Altersgerecht für Klasse 9/10 (sachlich, akademischer Fokus, prüfungsrelevant, differenzierte Fachsprache)' :
+    form.htmlDesignTheme === 'dark-arcade' ? 'Dunkles Arcade-Theme (Gaming-Atmosphäre, Missionen & Challenges)' :
+    form.htmlDesignTheme === 'warm-parchment' ? 'Historisches Pergament / Bibliothek (historische Quellenarbeit & sprachliche Tiefe)' :
+    `Individueller Gestaltungswunsch: "${form.customHtmlDesignPrompt || 'Themenbezogen'}"`
+}
+${form.customHtmlDesignPrompt ? `- Besonderer gestalterischer Wunsch der Lehrkraft: "${form.customHtmlDesignPrompt}"` : ''}
+- Hintergrund-Muster: ${form.htmlBgPattern || 'auto'}
+- DIDAKTISCHE VORGABE: Richte die Sprache, Beispiele, Erklärungen und Aufgabenformulierungen gezielt an dieser Altersgruppe und Gestaltung aus!
+
 === STRUKTUR DER ANTWORT (SEHR WICHTIG) ===
 Bitte strukturiere deine Antwort GENAU mit den folgenden Trenn-Tags, damit unsere Software die Inhalte automatisch in die Tabs einsortieren kann:
 
@@ -659,7 +673,10 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
       specialItems: form.stationModules?.specialModule !== false ? specialItems : [],
       quizQuestions: form.stationModules?.quiz !== false ? stationQuiz : [],
       reflectionChecklist: form.stationModules?.reflection !== false ? reflectionChecklist : [],
-      researchRecommendations
+      researchRecommendations,
+      designTheme: form.htmlDesignTheme,
+      customDesignPrompt: form.customHtmlDesignPrompt,
+      bgPattern: form.htmlBgPattern
     });
 
     gameHtml = stationHtml;

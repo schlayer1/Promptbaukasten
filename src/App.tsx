@@ -85,7 +85,10 @@ export const App: React.FC = () => {
       afb2TaskCount: 1,
       afb3TaskCount: 1,
       youtubeLinkCount: 3
-    }
+    },
+    htmlDesignTheme: 'topic-adaptive',
+    customHtmlDesignPrompt: '',
+    htmlBgPattern: 'auto'
   });
 
   // --- AI PROVIDER STATE ---
@@ -209,7 +212,10 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
         afb2TaskCount: 1,
         afb3TaskCount: 1,
         youtubeLinkCount: 3
-      }
+      },
+      htmlDesignTheme: 'topic-adaptive',
+      customHtmlDesignPrompt: '',
+      htmlBgPattern: 'auto'
     });
   });
 
@@ -312,7 +318,10 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
         afb2TaskCount: 1,
         afb3TaskCount: 1,
         youtubeLinkCount: 3
-      }
+      },
+      htmlDesignTheme: 'topic-adaptive',
+      customHtmlDesignPrompt: '',
+      htmlBgPattern: 'auto'
     });
     addToast('Zurückgesetzt', 'Formular auf Standardwerte zurückgesetzt.', 'info');
   };
@@ -507,10 +516,16 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
                 stationSpecialType={formState.stationSpecialType}
                 stationInclusionTipps={formState.stationInclusionTipps}
                 stationCustomization={formState.stationCustomization}
+                htmlDesignTheme={formState.htmlDesignTheme}
+                customHtmlDesignPrompt={formState.customHtmlDesignPrompt}
+                htmlBgPattern={formState.htmlBgPattern}
                 onModulesChange={mods => setFormState(prev => ({ ...prev, stationModules: mods }))}
                 onSpecialTypeChange={st => setFormState(prev => ({ ...prev, stationSpecialType: st }))}
                 onInclusionTippsToggle={enabled => setFormState(prev => ({ ...prev, stationInclusionTipps: enabled }))}
                 onCustomizationChange={cust => setFormState(prev => ({ ...prev, stationCustomization: cust }))}
+                onDesignThemeChange={theme => setFormState(prev => ({ ...prev, htmlDesignTheme: theme }))}
+                onCustomDesignPromptChange={prompt => setFormState(prev => ({ ...prev, customHtmlDesignPrompt: prompt }))}
+                onBgPatternChange={pat => setFormState(prev => ({ ...prev, htmlBgPattern: pat }))}
               />
             )}
 

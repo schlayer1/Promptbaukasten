@@ -45,6 +45,17 @@ export interface StationCustomizationConfig {
 
 export type StationSpecialType = 'auto' | 'timeline' | 'detective' | 'experiment';
 
+export type HtmlDesignTheme =
+  | 'topic-adaptive'
+  | 'age-primary'
+  | 'age-middle'
+  | 'age-senior'
+  | 'dark-arcade'
+  | 'warm-parchment'
+  | 'custom';
+
+export type HtmlBgPattern = 'auto' | 'dots' | 'grid' | 'gradient' | 'minimal';
+
 export interface GeneratorFormState {
   format: TaskFormatId;
   subjectId: string;
@@ -68,6 +79,10 @@ export interface GeneratorFormState {
   stationSpecialType: StationSpecialType;
   stationInclusionTipps: boolean;
   stationCustomization: StationCustomizationConfig;
+  // Visuelle Gestaltung & Hintergrund
+  htmlDesignTheme: HtmlDesignTheme;
+  customHtmlDesignPrompt: string;
+  htmlBgPattern: HtmlBgPattern;
 }
 
 export interface ParsedGenerationOutput {

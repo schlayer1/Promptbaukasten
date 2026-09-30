@@ -1,3 +1,5 @@
+import { HtmlDesignTheme, HtmlBgPattern } from '../types/generator';
+
 export interface StationFlashcard {
   front: string;
   back: string;
@@ -49,6 +51,247 @@ export interface BuildStationOptions {
   quizQuestions?: StationQuizQuestion[];
   reflectionChecklist?: string[];
   researchRecommendations?: string[];
+  designTheme?: HtmlDesignTheme;
+  customDesignPrompt?: string;
+  bgPattern?: HtmlBgPattern;
+}
+
+export function resolveStationTheme(
+  theme: HtmlDesignTheme = 'topic-adaptive',
+  subject: string = '',
+  topic: string = '',
+  customPrompt: string = '',
+  bgPattern: HtmlBgPattern = 'auto'
+) {
+  const sLow = (subject + ' ' + topic).toLowerCase();
+  const cLow = (customPrompt || '').toLowerCase();
+
+  let primary = '#006185';
+  let primaryDark = '#004561';
+  let primaryLight = '#e1f3fa';
+  let primarySurface = '#f0f7fb';
+  let secondary = '#006b5f';
+  let accent = '#d97706';
+  let bg = '#f8fafc';
+  let card = '#ffffff';
+  let text = '#0f172a';
+  let textMuted = '#64748b';
+  let border = '#e2e8f0';
+  let radius = '1rem';
+  let headerGrad = 'linear-gradient(135deg, #004561 0%, #006185 100%)';
+  let themeTitle = 'Thüringer Regelschule';
+  let themeIcon = '🏫';
+
+  if (theme === 'topic-adaptive') {
+    if (sLow.includes('geschicht') || sLow.includes('steinzeit') || sLow.includes('antike') || sLow.includes('rom') || sLow.includes('mittelalter') || sLow.includes('ägypten')) {
+      primary = '#92400e';
+      primaryDark = '#78350f';
+      primaryLight = '#fef3c7';
+      primarySurface = '#fffbeb';
+      secondary = '#b45309';
+      accent = '#d97706';
+      bg = '#fcf9f2';
+      border = '#e7ded2';
+      headerGrad = 'linear-gradient(135deg, #78350f 0%, #b45309 100%)';
+      themeTitle = 'Historischer Kontext';
+      themeIcon = '🏺';
+    } else if (sLow.includes('bio') || sLow.includes('pflanz') || sLow.includes('tier') || sLow.includes('ökolog') || sLow.includes('mensch') || sLow.includes('wald') || sLow.includes('zelle')) {
+      primary = '#166534';
+      primaryDark = '#14532d';
+      primaryLight = '#dcfce7';
+      primarySurface = '#f0fdf4';
+      secondary = '#15803d';
+      accent = '#059669';
+      bg = '#f4f9f5';
+      border = '#d1e7dd';
+      headerGrad = 'linear-gradient(135deg, #14532d 0%, #166534 100%)';
+      themeTitle = 'Natur & Biologie';
+      themeIcon = '🌿';
+    } else if (sLow.includes('physik') || sLow.includes('chemie') || sLow.includes('technik') || sLow.includes('atom') || sLow.includes('elektr') || sLow.includes('labor')) {
+      primary = '#0284c7';
+      primaryDark = '#0369a1';
+      primaryLight = '#e0f2fe';
+      primarySurface = '#f0f9ff';
+      secondary = '#0284c7';
+      accent = '#0ea5e9';
+      bg = '#f2f8fc';
+      border = '#bae6fd';
+      headerGrad = 'linear-gradient(135deg, #0369a1 0%, #0284c7 100%)';
+      themeTitle = 'Naturwissenschaften & Labor';
+      themeIcon = '⚡';
+    } else if (sLow.includes('deutsch') || sLow.includes('fabel') || sLow.includes('märchen') || sLow.includes('literatur') || sLow.includes('grammatik') || sLow.includes('gedicht')) {
+      primary = '#4338ca';
+      primaryDark = '#3730a3';
+      primaryLight = '#e0e7ff';
+      primarySurface = '#eef2ff';
+      secondary = '#6366f1';
+      accent = '#b45309';
+      bg = '#f8f9fc';
+      border = '#e0e7ff';
+      headerGrad = 'linear-gradient(135deg, #3730a3 0%, #4338ca 100%)';
+      themeTitle = 'Sprache & Literatur';
+      themeIcon = '📖';
+    } else if (sLow.includes('mathe') || sLow.includes('geometr') || sLow.includes('bruch') || sLow.includes('gleichung') || sLow.includes('funktion')) {
+      primary = '#0f766e';
+      primaryDark = '#115e59';
+      primaryLight = '#ccfbf1';
+      primarySurface = '#f0fdfa';
+      secondary = '#0d9488';
+      accent = '#059669';
+      bg = '#f4faf8';
+      border = '#99f6e4';
+      headerGrad = 'linear-gradient(135deg, #115e59 0%, #0f766e 100%)';
+      themeTitle = 'Mathematik & Logik';
+      themeIcon = '📐';
+    } else if (sLow.includes('geograf') || sLow.includes('erdkunde') || sLow.includes('klima') || sLow.includes('vulkan') || sLow.includes('kontinent')) {
+      primary = '#0369a1';
+      primaryDark = '#075985';
+      primaryLight = '#e0f2fe';
+      primarySurface = '#f0f9ff';
+      secondary = '#0284c7';
+      accent = '#eab308';
+      bg = '#f4f8fb';
+      border = '#cbd5e1';
+      headerGrad = 'linear-gradient(135deg, #075985 0%, #0369a1 100%)';
+      themeTitle = 'Geografie & Raum';
+      themeIcon = '🌍';
+    }
+  } else if (theme === 'age-primary') {
+    primary = '#2563eb';
+    primaryDark = '#1d4ed8';
+    primaryLight = '#dbeafe';
+    primarySurface = '#eff6ff';
+    secondary = '#10b981';
+    accent = '#f59e0b';
+    bg = '#fdfbf7';
+    card = '#ffffff';
+    border = '#fde68a';
+    radius = '1.25rem';
+    headerGrad = 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #f59e0b 100%)';
+    themeTitle = 'Unterstufe (Klasse 5/6)';
+    themeIcon = '🎈';
+  } else if (theme === 'age-middle') {
+    primary = '#0d9488';
+    primaryDark = '#0f766e';
+    primaryLight = '#ccfbf1';
+    primarySurface = '#f0fdfa';
+    secondary = '#6366f1';
+    accent = '#f97316';
+    bg = '#f8fafc';
+    card = '#ffffff';
+    border = '#cbd5e1';
+    radius = '1rem';
+    headerGrad = 'linear-gradient(135deg, #0f766e 0%, #0d9488 60%, #6366f1 100%)';
+    themeTitle = 'Mittelstufe (Klasse 7/8)';
+    themeIcon = '⚡';
+  } else if (theme === 'age-senior') {
+    primary = '#0f172a';
+    primaryDark = '#020617';
+    primaryLight = '#e2e8f0';
+    primarySurface = '#f8fafc';
+    secondary = '#475569';
+    accent = '#0284c7';
+    bg = '#ffffff';
+    card = '#f8fafc';
+    text = '#0f172a';
+    border = '#cbd5e1';
+    radius = '0.5rem';
+    headerGrad = 'linear-gradient(135deg, #020617 0%, #0f172a 100%)';
+    themeTitle = 'Oberstufe (Klasse 9/10)';
+    themeIcon = '🎓';
+  } else if (theme === 'dark-arcade') {
+    primary = '#38bdf8';
+    primaryDark = '#0284c7';
+    primaryLight = '#0c4a6e';
+    primarySurface = '#082f49';
+    secondary = '#34d399';
+    accent = '#fbbf24';
+    bg = '#090d16';
+    card = '#111827';
+    text = '#f1f5f9';
+    textMuted = '#94a3b8';
+    border = '#1e293b';
+    radius = '1rem';
+    headerGrad = 'linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #0f172a 100%)';
+    themeTitle = 'Arcade Challenge';
+    themeIcon = '🕹️';
+  } else if (theme === 'warm-parchment') {
+    primary = '#78350f';
+    primaryDark = '#451a03';
+    primaryLight = '#fef3c7';
+    primarySurface = '#fffbeb';
+    secondary = '#92400e';
+    accent = '#b45309';
+    bg = '#faf6ee';
+    card = '#fffef9';
+    text = '#292524';
+    border = '#e7dec8';
+    radius = '0.85rem';
+    headerGrad = 'linear-gradient(135deg, #451a03 0%, #78350f 100%)';
+    themeTitle = 'Historisches Manuskript';
+    themeIcon = '📜';
+  } else if (theme === 'custom') {
+    if (cLow.includes('dschungel') || cLow.includes('wald') || cLow.includes('regenwald')) {
+      primary = '#15803d'; primaryDark = '#14532d'; primaryLight = '#dcfce7'; primarySurface = '#f0fdf4';
+      bg = '#f3faf4'; headerGrad = 'linear-gradient(135deg, #14532d 0%, #15803d 100%)';
+      themeIcon = '🌴';
+    } else if (cLow.includes('weltraum') || cLow.includes('space') || cLow.includes('kosmos') || cLow.includes('sterne')) {
+      primary = '#38bdf8'; primaryDark = '#0284c7'; primaryLight = '#0c4a6e'; bg = '#060913';
+      card = '#0f172a'; text = '#f8fafc'; textMuted = '#94a3b8'; border = '#1e293b';
+      headerGrad = 'linear-gradient(135deg, #020617 0%, #172554 100%)';
+      themeIcon = '🚀';
+    } else if (cLow.includes('rom') || cLow.includes('antike') || cLow.includes('griechen') || cLow.includes('marmor')) {
+      primary = '#854d0e'; primaryDark = '#713f12'; primaryLight = '#fef9c3'; bg = '#fafaf7';
+      border = '#e5e5e0'; headerGrad = 'linear-gradient(135deg, #713f12 0%, #854d0e 100%)';
+      themeIcon = '🏛️';
+    } else {
+      primary = '#6366f1'; primaryDark = '#4f46e5'; primaryLight = '#e0e7ff'; primarySurface = '#eef2ff';
+      headerGrad = 'linear-gradient(135deg, #4f46e5 0%, #8b5cf6 100%)';
+      themeIcon = '✨';
+    }
+    themeTitle = customPrompt && customPrompt.trim().length > 0 ? customPrompt.trim() : 'Individuelles Design';
+  }
+
+  // Resolve Background Pattern
+  let bgPatternCss = 'none';
+  let bgPatternSize = 'auto';
+
+  const effectivePattern = bgPattern === 'auto'
+    ? (theme === 'dark-arcade' ? 'dots' : theme === 'age-primary' ? 'dots' : (sLow.includes('mathe') || sLow.includes('physik')) ? 'grid' : 'minimal')
+    : bgPattern;
+
+  if (effectivePattern === 'dots') {
+    const dotColor = theme === 'dark-arcade' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(100, 116, 139, 0.18)';
+    bgPatternCss = `radial-gradient(${dotColor} 1.2px, transparent 1.2px)`;
+    bgPatternSize = '20px 20px';
+  } else if (effectivePattern === 'grid') {
+    const gridColor = theme === 'dark-arcade' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(148, 163, 184, 0.14)';
+    bgPatternCss = `linear-gradient(to right, ${gridColor} 1px, transparent 1px), linear-gradient(to bottom, ${gridColor} 1px, transparent 1px)`;
+    bgPatternSize = '24px 24px';
+  } else if (effectivePattern === 'gradient') {
+    bgPatternCss = `radial-gradient(at 100% 0%, ${primaryLight} 0px, transparent 50%), radial-gradient(at 0% 100%, ${primarySurface} 0px, transparent 50%)`;
+    bgPatternSize = '100% 100%';
+  }
+
+  return {
+    primary,
+    primaryDark,
+    primaryLight,
+    primarySurface,
+    secondary,
+    accent,
+    bg,
+    card,
+    text,
+    textMuted,
+    border,
+    radius,
+    headerGrad,
+    bgPatternCss,
+    bgPatternSize,
+    themeTitle,
+    themeIcon
+  };
 }
 
 export function buildSelfContainedStationHtml(opts: BuildStationOptions): string {
@@ -79,8 +322,13 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
     researchRecommendations = [
       `${topic} einfach erklärt`,
       `${topic} Zusammenfassung ${subject}`
-    ]
+    ],
+    designTheme = 'topic-adaptive',
+    customDesignPrompt = '',
+    bgPattern = 'auto'
   } = opts;
+
+  const resolvedTheme = resolveStationTheme(designTheme, subject, topic, customDesignPrompt, bgPattern);
 
   // Anti-A-Bias: Shuffle quiz question options so Option A is never systematically the correct answer
   const sanitizedQuizQuestions = (quizQuestions || []).map(q => {
@@ -106,12 +354,12 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
     const uniqueWords = Array.from(new Set(matches.map(m => m[1]))).sort(() => 0.5 - Math.random());
     if (uniqueWords.length > 0) {
       wordBankHtml = `
-        <div class="cloze-wordbank" style="background:#f8fafc; border:1.5px dashed #94a3b8; border-radius:0.75rem; padding:0.75rem 1rem; margin-bottom:1.25rem;">
-          <div style="font-size:0.75rem; font-weight:800; text-transform:uppercase; color:#475569; letter-spacing:0.05em; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
+        <div class="cloze-wordbank" style="background:${resolvedTheme.primarySurface}; border:1.5px dashed ${resolvedTheme.border}; border-radius:${resolvedTheme.radius}; padding:0.75rem 1rem; margin-bottom:1.25rem;">
+          <div style="font-size:0.75rem; font-weight:800; text-transform:uppercase; color:${resolvedTheme.textMuted}; letter-spacing:0.05em; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
             <span>💡</span> Wortspeicher (Einsetzbare Begriffe als Formulierungshilfe):
           </div>
           <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-            ${uniqueWords.map(w => `<span style="display:inline-block; background:#ffffff; border:1px solid #cbd5e1; color:#0f172a; padding:0.25rem 0.65rem; border-radius:0.5rem; font-size:0.8rem; font-weight:700; box-shadow:0 1px 2px rgba(0,0,0,0.04);">${escapeHtml(w)}</span>`).join('')}
+            ${uniqueWords.map(w => `<span style="display:inline-block; background:${resolvedTheme.card}; border:1px solid ${resolvedTheme.border}; color:${resolvedTheme.text}; padding:0.25rem 0.65rem; border-radius:0.5rem; font-size:0.8rem; font-weight:700; box-shadow:0 1px 2px rgba(0,0,0,0.04);">${escapeHtml(w)}</span>`).join('')}
           </div>
         </div>
       `;
@@ -126,21 +374,21 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)} - Digitale Lernstation</title>
   <style>
     :root {
-      --primary: #006185;
-      --primary-dark: #004561;
-      --primary-light: #e1f3fa;
-      --primary-surface: #f0f7fb;
-      --secondary: #006b5f;
-      --accent: #d97706;
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
+      --primary: ${resolvedTheme.primary};
+      --primary-dark: ${resolvedTheme.primaryDark};
+      --primary-light: ${resolvedTheme.primaryLight};
+      --primary-surface: ${resolvedTheme.primarySurface};
+      --secondary: ${resolvedTheme.secondary};
+      --accent: ${resolvedTheme.accent};
+      --bg: ${resolvedTheme.bg};
+      --card: ${resolvedTheme.card};
+      --text: ${resolvedTheme.text};
+      --text-muted: ${resolvedTheme.textMuted};
+      --border: ${resolvedTheme.border};
       --correct: #16a34a;
       --correct-bg: #dcfce7;
       --wrong: #dc2626;
@@ -148,24 +396,32 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
       --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
       --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
-      --radius: 1rem;
+      --radius: ${resolvedTheme.radius};
+      --header-grad: ${resolvedTheme.headerGrad};
+      --bg-pattern: ${resolvedTheme.bgPatternCss};
+      --bg-pattern-size: ${resolvedTheme.bgPatternSize};
       --font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body {
-      background: var(--bg);
+      background-color: var(--bg);
+      background-image: var(--bg-pattern);
+      background-size: var(--bg-pattern-size);
+      background-attachment: fixed;
       color: var(--text);
       font-family: var(--font);
       line-height: 1.6;
       padding-bottom: 5rem;
+      overflow-x: hidden;
+      width: 100%;
     }
 
     /* TOP HEADER */
     .station-header {
-      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      background: var(--header-grad);
       color: white;
-      padding: 2.25rem 1.25rem 2rem;
+      padding: clamp(1.5rem, 4vw, 2.5rem) 1rem clamp(1.25rem, 3vw, 2rem);
       box-shadow: var(--shadow-md);
       position: relative;
     }
@@ -196,13 +452,14 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
       font-weight: 600;
     }
     .station-title {
-      font-size: 1.85rem;
+      font-size: clamp(1.4rem, 4.5vw, 2.1rem);
       font-weight: 900;
       line-height: 1.25;
       margin-bottom: 0.4rem;
+      word-break: break-word;
     }
     .station-subtitle {
-      font-size: 0.95rem;
+      font-size: clamp(0.85rem, 2.5vw, 1rem);
       opacity: 0.92;
       max-width: 700px;
     }
@@ -211,20 +468,23 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
     .main-container {
       max-width: 900px;
       margin: -1.25rem auto 0;
-      padding: 0 1rem;
+      padding: 0 clamp(0.75rem, 3vw, 1.25rem);
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
       position: relative;
       z-index: 10;
+      width: 100%;
     }
 
     .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.5rem;
+      padding: clamp(1rem, 3.5vw, 1.6rem);
       box-shadow: var(--shadow-sm);
+      word-wrap: break-word;
+      overflow: hidden;
     }
     .card-header {
       display: flex;
@@ -233,9 +493,10 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
       margin-bottom: 1.25rem;
       padding-bottom: 0.75rem;
       border-bottom: 1px solid var(--border);
+      gap: 0.5rem;
     }
     .card-title {
-      font-size: 1.15rem;
+      font-size: clamp(1.05rem, 3vw, 1.25rem);
       font-weight: 800;
       display: flex;
       align-items: center;
@@ -419,10 +680,11 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
     }
     .cloze-select {
       display: inline-block;
-      font-size: 0.95rem;
+      font-size: 16px !important; /* Verhindert automatisches iOS Safari Zoom */
       font-weight: 700;
-      padding: 0.35rem 0.6rem;
-      margin: 0 0.25rem;
+      min-height: 40px;
+      padding: 0.35rem 0.65rem;
+      margin: 0.2rem 0.25rem;
       border: 2px solid var(--border);
       border-radius: 0.5rem;
       background: white;
@@ -430,6 +692,7 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
       cursor: pointer;
       outline: none;
       transition: all 0.2s;
+      max-width: 100%;
     }
     .cloze-select.correct {
       border-color: var(--correct);
@@ -547,28 +810,33 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
     }
     .quiz-question-box:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
     .quiz-q-title {
-      font-size: 0.95rem;
+      font-size: clamp(0.95rem, 2.5vw, 1.05rem);
       font-weight: 700;
       margin-bottom: 0.75rem;
     }
     .quiz-options-grid {
       display: grid;
-      grid-cols: 1;
-      gap: 0.5rem;
+      grid-template-columns: 1fr;
+      gap: 0.65rem;
     }
     @media (min-width: 640px) {
       .quiz-options-grid { grid-template-columns: 1fr 1fr; }
     }
     .quiz-opt-btn {
-      padding: 0.75rem 1rem;
+      padding: 0.85rem 1rem;
       background: white;
       border: 1.5px solid var(--border);
-      border-radius: 0.65rem;
+      border-radius: 0.75rem;
       text-align: left;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
       transition: all 0.2s;
+      touch-action: manipulation;
+      word-break: break-word;
     }
     .quiz-opt-btn:hover:not(:disabled) {
       border-color: var(--primary);
@@ -586,10 +854,10 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
     }
     .quiz-fb {
       margin-top: 0.5rem;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       font-weight: 600;
-      padding: 0.4rem 0.6rem;
-      border-radius: 0.4rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
     }
 
     /* 8. REFLECTION */
@@ -599,7 +867,8 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
       gap: 0.75rem;
       padding: 0.65rem 0.85rem;
       border-radius: 0.5rem;
-      background: #f8fafc;
+      background: var(--primary-surface);
+      border: 1px solid var(--border);
       margin-bottom: 0.5rem;
       font-size: 0.85rem;
       font-weight: 600;
@@ -616,7 +885,10 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
       font-weight: 700;
       margin-right: 0.5rem;
       margin-top: 0.5rem;
+      text-decoration: none;
+      transition: transform 0.15s;
     }
+    .research-pill:hover { transform: scale(1.03); }
 
     /* FOOTER BAR */
     .station-footer {
@@ -626,6 +898,22 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
       border-top: 1px solid var(--border);
       font-size: 0.8rem;
       color: var(--text-muted);
+    }
+
+    /* RESPONSIVE QUERIES FÜR SMARTPHONES & TABLETS */
+    @media (max-width: 639px) {
+      .badge-bar { gap: 0.35rem; }
+      .badge { font-size: 0.7rem; padding: 0.2rem 0.55rem; }
+      .cloze-box { padding: 1rem 0.75rem; line-height: 2.4; font-size: 0.95rem; }
+      .quiz-options-grid { grid-template-columns: 1fr; gap: 0.6rem; }
+      .quiz-opt-btn { width: 100%; min-height: 48px; }
+      .card-header { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+      .cloze-footer { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+      .cloze-footer button { width: 100%; }
+      .flashcard-nav { width: 100%; justify-content: space-between; }
+      .btn-nav { flex: 1; text-align: center; min-height: 44px; }
+      .timeline-item { flex-direction: column; gap: 0.5rem; }
+      .timeline-icon-box { width: 2.25rem; height: 2.25rem; font-size: 1.1rem; }
     }
 
     @media print {
@@ -655,7 +943,8 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
   <header class="station-header">
     <div class="header-inner">
       <div class="badge-bar">
-        <span class="badge">${escapeHtml(subject)} • Kl. ${grade}</span>
+        <span class="badge">${resolvedTheme.themeIcon} ${escapeHtml(subject)} • Kl. ${grade}</span>
+        <span class="badge" style="background:rgba(255,255,255,0.25);">${escapeHtml(resolvedTheme.themeTitle)}</span>
         <span class="school-tag">Staatliche Regelschule Heimbürgeschule Kahla</span>
       </div>
       <h1 class="station-title">${escapeHtml(topic)}</h1>
