@@ -8,14 +8,34 @@
   }
 }
 
-/* Print optimizations */
+/* Print optimizations for crisp DIN A4 Worksheet & Rubric printing */
 @media print {
-  body {
+  @page {
+    margin: 1.2cm 1.5cm;
+    size: A4 portrait;
+  }
+  html, body {
     background: #ffffff !important;
     color: #000000 !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
   }
-  header, .no-print {
+  header, nav, footer, .print\:hidden, .no-print, [role="dialog"] {
     display: none !important;
+  }
+  /* Ensure the active printable sheet takes full width without sidebar or margins */
+  .printable-sheet, #printable-worksheet, #printable-rubric {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
   }
   .break-inside-avoid {
     break-inside: avoid !important;

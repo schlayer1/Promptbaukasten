@@ -32,7 +32,18 @@ export interface StationModulesConfig {
   reflection: boolean;
 }
 
-export type StationSpecialType = 'timeline' | 'detective' | 'experiment' | 'auto';
+export interface StationCustomizationConfig {
+  flashcardCount: number; // z.B. 4, 6, 8, 10
+  clozeHoleCount: number; // z.B. 3, 5, 8
+  clozeWithWordBank: boolean; // true = Kasten mit Wörtern anzeigen
+  quizQuestionCount: number; // z.B. 4, 6, 8, 10
+  afb1TaskCount: number; // Anzahl Basis-Aufgaben (AFB I)
+  afb2TaskCount: number; // Anzahl Standard-Aufgaben (AFB II)
+  afb3TaskCount: number; // Anzahl Experten-Aufgaben (AFB III)
+  youtubeLinkCount: number; // Anzahl empfohlener YouTube-Recherchen (z.B. 1 bis 5)
+}
+
+export type StationSpecialType = 'auto' | 'timeline' | 'detective' | 'experiment';
 
 export interface GeneratorFormState {
   format: TaskFormatId;
@@ -56,6 +67,7 @@ export interface GeneratorFormState {
   stationModules: StationModulesConfig;
   stationSpecialType: StationSpecialType;
   stationInclusionTipps: boolean;
+  stationCustomization: StationCustomizationConfig;
 }
 
 export interface ParsedGenerationOutput {

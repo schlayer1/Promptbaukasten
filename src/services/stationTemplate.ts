@@ -41,6 +41,7 @@ export interface BuildStationOptions {
   inclusionTips?: { term: string; explanation: string }[];
   flashcards?: StationFlashcard[];
   clozeHtml?: string; // Text with embedded dropdown markers or standard markup
+  clozeWithWordBank?: boolean; // Ob ein Wortspeicher über dem Lückentext angezeigt werden soll
   clozeAnswers?: { id: string; correct: string }[];
   afbTasks?: StationAfbTask[];
   specialModuleTitle?: string;
@@ -65,6 +66,7 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
     inclusionTips = [],
     flashcards = [],
     clozeHtml = '',
+    clozeWithWordBank = true,
     afbTasks = [],
     specialModuleTitle = 'Quellen- & Entdecker-Station',
     specialItems = [],
@@ -80,9 +82,45 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
     ]
   } = opts;
 
+  // Anti-A-Bias: Shuffle quiz question options so Option A is never systematically the correct answer
+  const sanitizedQuizQuestions = (quizQuestions || []).map(q => {
+    if (!q.options || q.options.length <= 1) return q;
+    const correctVal = q.options[q.correctIndex] ?? q.options[0];
+    const shuffled = [...q.options];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const newIdx = shuffled.indexOf(correctVal);
+    return {
+      ...q,
+      options: shuffled,
+      correctIndex: newIdx !== -1 ? newIdx : 0
+    };
+  });
+
+  // Extract unique correct words from clozeHtml for word bank display
+  let wordBankHtml = '';
+  if (clozeWithWordBank && clozeHtml) {
+    const matches = [...clozeHtml.matchAll(/data-correct="([^"]+)"/g)];
+    const uniqueWords = Array.from(new Set(matches.map(m => m[1]))).sort(() => 0.5 - Math.random());
+    if (uniqueWords.length > 0) {
+      wordBankHtml = `
+        <div class="cloze-wordbank" style="background:#f8fafc; border:1.5px dashed #94a3b8; border-radius:0.75rem; padding:0.75rem 1rem; margin-bottom:1.25rem;">
+          <div style="font-size:0.75rem; font-weight:800; text-transform:uppercase; color:#475569; letter-spacing:0.05em; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
+            <span>💡</span> Wortspeicher (Einsetzbare Begriffe als Formulierungshilfe):
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+            ${uniqueWords.map(w => `<span style="display:inline-block; background:#ffffff; border:1px solid #cbd5e1; color:#0f172a; padding:0.25rem 0.65rem; border-radius:0.5rem; font-size:0.8rem; font-weight:700; box-shadow:0 1px 2px rgba(0,0,0,0.04);">${escapeHtml(w)}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+  }
+
   const safeGoalsJson = JSON.stringify(goals);
   const safeFlashcardsJson = JSON.stringify(flashcards);
-  const safeQuizJson = JSON.stringify(quizQuestions);
+  const safeQuizJson = JSON.stringify(sanitizedQuizQuestions);
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -591,12 +629,23 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
     }
 
     @media print {
-      body { background: white !important; padding: 0; }
-      .station-header { background: none; color: black; border-bottom: 2px solid #000; padding: 1rem 0; }
-      .card { box-shadow: none !important; border: 1px solid #ccc; break-inside: avoid; margin-bottom: 1.5rem; }
-      .btn-nav, .btn-action, .flashcard-nav { display: none !important; }
+      body { background: white !important; color: #000 !important; padding: 0 !important; font-size: 11pt; }
+      .station-header { background: none; color: black; border-bottom: 2px solid #000; padding: 0.5rem 0 1rem 0; margin-bottom: 1.5rem; }
+      .station-title { color: #000; font-size: 18pt; }
+      .station-subtitle { color: #555; }
+      .school-tag { border-color: #999; color: #333; }
+      .badge { background: #eee !important; color: #000 !important; }
+      .card { box-shadow: none !important; border: 1px solid #ccc; break-inside: avoid; page-break-inside: avoid; margin-bottom: 1.5rem; padding: 1.25rem !important; }
+      .btn-nav, .btn-action, .flashcard-nav, .cloze-score, #quizScoreDisplay, .station-footer button { display: none !important; }
+      .card-perspective { perspective: none; }
+      .card-flipper { transform: none !important; }
+      .card-front { border: 1px dashed #999; margin-bottom: 0.5rem; }
+      .card-back { position: static; transform: none; border: 1px solid #ccc; margin-top: 0.5rem; }
+      .card-hint { display: none; }
       details summary { display: none; }
-      details p { display: block !important; }
+      details p { display: block !important; margin-top: 0.5rem; color: #444; }
+      .research-pill { border: 1px solid #ccc; background: none !important; color: #000 !important; }
+      select.cloze-select { border: none !important; border-bottom: 1.5px solid #000 !important; border-radius: 0; background: none !important; color: #000 !important; -webkit-appearance: none; appearance: none; }
     }
   </style>
 </head>
@@ -711,6 +760,7 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
           <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted);">Wähle die richtigen Begriffe</span>
         </div>
         <div class="cloze-box" id="clozeContainer">
+          ${wordBankHtml}
           ${clozeHtml}
         </div>
         <div class="cloze-footer">
@@ -831,10 +881,18 @@ export function buildSelfContainedStationHtml(opts: BuildStationOptions): string
             </h4>
             <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
               ${researchRecommendations.map(rec => `
-                <span class="research-pill">
+                <a 
+                  href="https://www.youtube.com/results?search_query=${encodeURIComponent(rec)}" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  class="research-pill"
+                  title="Auf YouTube nach '${escapeHtml(rec)}' suchen"
+                  style="text-decoration:none; cursor:pointer;"
+                >
                   <span>▶</span>
                   <span>"${escapeHtml(rec)}"</span>
-                </span>
+                  <span style="font-size:0.65rem; opacity:0.7;">↗</span>
+                </a>
               `).join('')}
             </div>
           </div>

@@ -75,7 +75,17 @@ export const App: React.FC = () => {
       reflection: true
     },
     stationSpecialType: 'auto',
-    stationInclusionTipps: true
+    stationInclusionTipps: true,
+    stationCustomization: {
+      flashcardCount: 6,
+      clozeHoleCount: 5,
+      clozeWithWordBank: true,
+      quizQuestionCount: 6,
+      afb1TaskCount: 1,
+      afb2TaskCount: 1,
+      afb3TaskCount: 1,
+      youtubeLinkCount: 3
+    }
   });
 
   // --- AI PROVIDER STATE ---
@@ -189,7 +199,17 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
         reflection: true
       },
       stationSpecialType: 'auto',
-      stationInclusionTipps: true
+      stationInclusionTipps: true,
+      stationCustomization: {
+        flashcardCount: 6,
+        clozeHoleCount: 5,
+        clozeWithWordBank: true,
+        quizQuestionCount: 6,
+        afb1TaskCount: 1,
+        afb2TaskCount: 1,
+        afb3TaskCount: 1,
+        youtubeLinkCount: 3
+      }
     });
   });
 
@@ -282,7 +302,17 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
         reflection: true
       },
       stationSpecialType: 'auto',
-      stationInclusionTipps: true
+      stationInclusionTipps: true,
+      stationCustomization: {
+        flashcardCount: 6,
+        clozeHoleCount: 5,
+        clozeWithWordBank: true,
+        quizQuestionCount: 6,
+        afb1TaskCount: 1,
+        afb2TaskCount: 1,
+        afb3TaskCount: 1,
+        youtubeLinkCount: 3
+      }
     });
     addToast('Zurückgesetzt', 'Formular auf Standardwerte zurückgesetzt.', 'info');
   };
@@ -427,11 +457,11 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
         onResetForm={handleResetForm}
       />
 
-      <main className="flex-1 max-w-[1760px] 2xl:max-w-[1920px] w-full mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <main className="flex-1 max-w-[1760px] 2xl:max-w-[1920px] w-full mx-auto p-4 sm:p-6 lg:p-8 print:p-0 print:m-0 print:max-w-none print:w-full print:block">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start print:block print:w-full print:p-0 print:m-0">
           
           {/* LINK SPALTE: BUILDER FORM (5 Spalten auf Desktop) */}
-          <div className="lg:col-span-5 space-y-4 bg-white p-5 sm:p-6 rounded-2xl border border-school-border shadow-soft lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto custom-scrollbar">
+          <div className="lg:col-span-5 space-y-4 bg-white p-5 sm:p-6 rounded-2xl border border-school-border shadow-soft lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto custom-scrollbar print:hidden">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 sticky top-0 bg-white/95 backdrop-blur-xs z-10 -mx-1 px-1">
               <h2 className="font-extrabold text-base text-school-textMain flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-school-primary" />
@@ -476,9 +506,11 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
                 stationModules={formState.stationModules}
                 stationSpecialType={formState.stationSpecialType}
                 stationInclusionTipps={formState.stationInclusionTipps}
+                stationCustomization={formState.stationCustomization}
                 onModulesChange={mods => setFormState(prev => ({ ...prev, stationModules: mods }))}
                 onSpecialTypeChange={st => setFormState(prev => ({ ...prev, stationSpecialType: st }))}
                 onInclusionTippsToggle={enabled => setFormState(prev => ({ ...prev, stationInclusionTipps: enabled }))}
+                onCustomizationChange={cust => setFormState(prev => ({ ...prev, stationCustomization: cust }))}
               />
             )}
 
@@ -543,10 +575,10 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
           </div>
 
           {/* RECHTE SPALTE: DREIGLEISIGE AUSGABE (7 Spalten auf Desktop) */}
-          <div id="output-pane" className="lg:col-span-7 space-y-4 scroll-mt-20">
+          <div id="output-pane" className="lg:col-span-7 space-y-4 scroll-mt-20 print:w-full print:block print:p-0 print:m-0">
             
             {/* TABS & CLOUD SAVE LEISTE */}
-            <div className="bg-white p-2.5 rounded-2xl border border-school-border shadow-soft flex flex-wrap items-center justify-between gap-2">
+            <div className="bg-white p-2.5 rounded-2xl border border-school-border shadow-soft flex flex-wrap items-center justify-between gap-2 print:hidden">
               <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 max-w-full py-0.5">
                 <button
                   onClick={() => setActiveTab('game')}
@@ -651,6 +683,7 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
                   topicTitle={currentTopic?.title || 'Unterrichtsthema'}
                   subjectName={currentSubject.name}
                   gradeLevel={formState.gradeLevel}
+                  onRubricChange={md => setOutput(prev => ({ ...prev, rubricMarkdown: md }))}
                 />
               )}
 
@@ -668,7 +701,7 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
       </main>
 
       {/* MOBILE STICKY BOTTOM ACTION BAR */}
-      <div className="lg:hidden fixed bottom-3 left-3 right-3 z-30 bg-slate-900/90 backdrop-blur-md text-white p-2 rounded-2xl shadow-2xl flex items-center justify-between gap-2 border border-slate-700/80">
+      <div className="lg:hidden fixed bottom-3 left-3 right-3 z-30 bg-slate-900/90 backdrop-blur-md text-white p-2 rounded-2xl shadow-2xl flex items-center justify-between gap-2 border border-slate-700/80 print:hidden">
         <div className="flex items-center gap-1">
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

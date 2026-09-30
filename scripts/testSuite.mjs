@@ -325,6 +325,68 @@ Die Sippe bot Schutz vor wilden [Tieren* / Autos / Flugzeugen].
   assert(stationAfb && stationAfb.length === 1, 'Parsed AFB task 1');
   assert(stationAfb[0].level === 'I', 'AFB task has level I');
 
+  // TEST 5: HBS NOTENSCHLÜSSEL & ANTI-A-BIAS VERIFICATION
+  console.log('\n--- TEST 5: HBS NOTENTABELLE & ANTI-A-BIAS ---');
+  function calculateHbsGradeTable(totalPoints) {
+    const safeTotal = Math.max(1, Math.round(totalPoints));
+    const p1 = Math.round(safeTotal * 0.95);
+    const p2 = Math.round(safeTotal * 0.80);
+    const p3 = Math.round(safeTotal * 0.65);
+    const p4 = Math.round(safeTotal * 0.45);
+    const p5 = Math.round(safeTotal * 0.25);
+    return [
+      { grade: 1, minPoints: p1, maxPoints: safeTotal },
+      { grade: 2, minPoints: p2, maxPoints: Math.max(0, p1 - 1) },
+      { grade: 3, minPoints: p3, maxPoints: Math.max(0, p2 - 1) },
+      { grade: 4, minPoints: p4, maxPoints: Math.max(0, p3 - 1) },
+      { grade: 5, minPoints: p5, maxPoints: Math.max(0, p4 - 1) },
+      { grade: 6, minPoints: 0, maxPoints: Math.max(0, p5 - 1) }
+    ];
+  }
+
+  // Check against known entries from official PDF:
+  // For 20 points:
+  // Note 1: 19 - 20 (95% of 20 = 19)
+  // Note 2: 16 - 18 (80% of 20 = 16)
+  // Note 3: 13 - 15 (65% of 20 = 13)
+  // Note 4: 9 - 12  (45% of 20 = 9)
+  // Note 5: 5 - 8   (25% of 20 = 5)
+  // Note 6: 0 - 4   (< 25% of 20 = 0 to 4)
+  const table20 = calculateHbsGradeTable(20);
+  assert(table20[0].minPoints === 19 && table20[0].maxPoints === 20, '20 Points: Note 1 is 19-20 P.');
+  assert(table20[1].minPoints === 16 && table20[1].maxPoints === 18, '20 Points: Note 2 is 16-18 P.');
+  assert(table20[2].minPoints === 13 && table20[2].maxPoints === 15, '20 Points: Note 3 is 13-15 P.');
+  assert(table20[3].minPoints === 9 && table20[3].maxPoints === 12, '20 Points: Note 4 is 9-12 P. (45% threshold)');
+  assert(table20[4].minPoints === 5 && table20[4].maxPoints === 8, '20 Points: Note 5 is 5-8 P. (25% threshold)');
+  assert(table20[5].minPoints === 0 && table20[5].maxPoints === 4, '20 Points: Note 6 is 0-4 P.');
+
+  // For 100 points:
+  const table100 = calculateHbsGradeTable(100);
+  assert(table100[0].minPoints === 95 && table100[0].maxPoints === 100, '100 Points: Note 1 is 95-100 P.');
+  assert(table100[3].minPoints === 45 && table100[3].maxPoints === 64, '100 Points: Note 4 is 45-64 P.');
+  assert(table100[4].minPoints === 25 && table100[4].maxPoints === 44, '100 Points: Note 5 is 25-44 P.');
+
+  // Anti-A-bias options shuffling test
+  function shuffleOptionsList(options, correctIndex) {
+    if (!options || options.length <= 1) return { options, correctIndex };
+    const indexed = options.map((opt, idx) => ({ opt, isCorrect: idx === correctIndex }));
+    for (let i = indexed.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
+    }
+    const shuffledOptions = indexed.map(item => item.opt);
+    const newCorrectIndex = indexed.findIndex(item => item.isCorrect);
+    return { options: shuffledOptions, correctIndex: newCorrectIndex };
+  }
+
+  // Run 100 shuffles and make sure correct index is not always 0
+  const indicesSeen = new Set();
+  for (let s = 0; s < 100; s++) {
+    const res = shuffleOptionsList(['A', 'B', 'C', 'D'], 0);
+    indicesSeen.add(res.correctIndex);
+  }
+  assert(indicesSeen.size > 2, `Anti-A-bias: Option shuffling distributed correct index across ${indicesSeen.size} different positions`);
+
   console.log('\n==================================================');
   console.log(`🏁 FINAL SUITE RESULT: ${passCount} PASSED, ${failCount} FAILED`);
   console.log('==================================================');

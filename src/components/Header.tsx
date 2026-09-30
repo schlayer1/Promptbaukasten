@@ -37,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   const isCurrentConfigured = !!currentKeyInfo;
 
   return (
-    <header className="bg-white border-b border-school-border sticky top-0 z-40 shadow-soft">
+    <header className="bg-white border-b border-school-border sticky top-0 z-40 shadow-soft print:hidden">
       <div className="max-w-[1760px] 2xl:max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
           

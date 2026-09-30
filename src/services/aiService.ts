@@ -204,16 +204,16 @@ ${form.format === 'lernspiel' ? `=== LERNSPIEL-PARAMETER ===
 - Rahmenthema / Storytelling: ${storyThemeDesc}
 ` : ''}
 ${form.format === 'lernstation' ? `=== LERNSTATION-PARAMETER (SINGLE-PAGE INTERAKTIVE WEBSAITE) ===
-- Gewählte Module für diese Station:
-  * 1. Lernziel-Checkliste: ${form.stationModules?.goals !== false ? 'AKTIV' : 'DEAKTIVIERT'}
-  * 2. Wissensbereich mit Merkkästen & Fachbegriffen: ${form.stationModules?.knowledge !== false ? 'AKTIV' : 'DEAKTIVIERT'}
-  * 💡 Wortspeicher & Inklusionshilfen (DaZ / Förderung): ${form.stationInclusionTipps !== false ? 'AKTIV' : 'DEAKTIVIERT'}
-  * 3. 3D-Lernkarten (Begriffe sichern): ${form.stationModules?.flashcards !== false ? 'AKTIV' : 'DEAKTIVIERT'}
-  * 4. Interaktiver Lückentext: ${form.stationModules?.cloze !== false ? 'AKTIV' : 'DEAKTIVIERT'}
-  * 5. Differenzierte Aufgaben (AFB I–III): ${form.stationModules?.afbTasks !== false ? 'AKTIV' : 'DEAKTIVIERT'}
-  * 6. Fach-Spezialstation (${form.stationSpecialType === 'timeline' ? 'Zeitstrahl / Epochen' : form.stationSpecialType === 'detective' ? 'Quellen-Detektiv' : form.stationSpecialType === 'experiment' ? 'Experiment & Beobachtung' : 'Passend zum Fach/Thema'}): ${form.stationModules?.specialModule !== false ? 'AKTIV' : 'DEAKTIVIERT'}
-  * 7. Wissens-Check Quiz: ${form.stationModules?.quiz !== false ? 'AKTIV' : 'DEAKTIVIERT'}
-  * 8. Reflexion & Selbsteinschätzung + Suchbegriffe: ${form.stationModules?.reflection !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+Gewünschte Struktur & Umfang (strikt einhalten):
+- 1. Lernziel-Checkliste: ${form.stationModules?.goals !== false ? 'AKTIV (3-4 klare "Ich kann..."-Ziele)' : 'DEAKTIVIERT'}
+- 2. Wissensbereich mit Merkkästen & Fachbegriffen: ${form.stationModules?.knowledge !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+- 💡 Wortspeicher & Inklusionshilfen (DaZ / Förderung): ${form.stationInclusionTipps !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+- 3. 3D-Lernkarten (Begriffe sichern): ${form.stationModules?.flashcards !== false ? `AKTIV (Erstelle genau ${form.stationCustomization?.flashcardCount || 6} Lernkarten)` : 'DEAKTIVIERT'}
+- 4. Interaktiver Lückentext: ${form.stationModules?.cloze !== false ? `AKTIV (Erstelle genau ${form.stationCustomization?.clozeHoleCount || 5} Lücken, ${form.stationCustomization?.clozeWithWordBank ? 'mit Wortspeicher-Hilfe' : 'ohne Wortspeicher'})` : 'DEAKTIVIERT'}
+- 5. Differenzierte Aufgaben (AFB I–III): ${form.stationModules?.afbTasks !== false ? `AKTIV (Aufteilung: genau ${form.stationCustomization?.afb1TaskCount ?? 1}x AFB I Basis, genau ${form.stationCustomization?.afb2TaskCount ?? 1}x AFB II Standard, genau ${form.stationCustomization?.afb3TaskCount ?? 1}x AFB III Transfer)` : 'DEAKTIVIERT'}
+- 6. Fach-Spezialstation (${form.stationSpecialType === 'timeline' ? 'Zeitstrahl / Epochen' : form.stationSpecialType === 'detective' ? 'Quellen-Detektiv' : form.stationSpecialType === 'experiment' ? 'Experiment & Beobachtung' : 'Passend zum Fach/Thema'}): ${form.stationModules?.specialModule !== false ? 'AKTIV' : 'DEAKTIVIERT'}
+- 7. Wissens-Check Quiz: ${form.stationModules?.quiz !== false ? `AKTIV (Erstelle genau ${form.stationCustomization?.quizQuestionCount || 6} Multiple-Choice-Fragen. ACHTUNG: Die richtige Lösung darf NICHT immer Antwort A sein! Verteile correctIndex zufällig auf 0, 1, 2 oder 3)` : 'DEAKTIVIERT'}
+- 8. Reflexion & Selbsteinschätzung: ${form.stationModules?.reflection !== false ? `AKTIV (inkl. genau ${form.stationCustomization?.youtubeLinkCount || 3} YouTube-Suchbegriffen)` : 'DEAKTIVIERT'}
 ` : ''}
 
 === STRUKTUR DER ANTWORT (SEHR WICHTIG) ===
@@ -232,17 +232,17 @@ Strukturierter Erklärungstext mit Zwischenüberschriften (###) und Merksätzen.
 Formatiere zentrale Fachbegriffe fett.
 
 <!-- SECTION:STATION_FLASHCARDS -->
-Valides JSON-Array von 4 bis 6 Lernkarten (Vorderseite & Rückseite):
+Valides JSON-Array von genau ${form.stationCustomization?.flashcardCount || 6} Lernkarten (Vorderseite & Rückseite):
 [
   { "front": "Fachbegriff", "back": "Schülergerechte Erklärung / Definition" }
 ]
 
 <!-- SECTION:STATION_CLOZE -->
-Ein zusammenhängender Lückentext (ca. 4-6 Sätze) mit 3-5 Lücken im Format [Richtige Option* / Falsche Option 1 / Falsche Option 2].
+Ein zusammenhängender Lückentext mit genau ${form.stationCustomization?.clozeHoleCount || 5} Lücken im Format [Richtige Option* / Falsche Option 1 / Falsche Option 2].
 Beispiel: Die Menschen lebten in [Sippen* / Einzelhäusern / Großstädten] zusammen.
 
 <!-- SECTION:STATION_AFB -->
-Valides JSON-Array von genau 3 differenzierten Aufgaben (AFB I, II, III):
+Valides JSON-Array von differenzierten Aufgaben (${(form.stationCustomization?.afb1TaskCount ?? 1)}x AFB I, ${(form.stationCustomization?.afb2TaskCount ?? 1)}x AFB II, ${(form.stationCustomization?.afb3TaskCount ?? 1)}x AFB III):
 [
   {
     "level": "I",
@@ -280,11 +280,18 @@ ITEMS:
 ]
 
 <!-- SECTION:STATION_QUIZ -->
-Valides JSON-Array mit 4 bis 6 Multiple-Choice-Fragen:
+Valides JSON-Array mit genau ${form.stationCustomization?.quizQuestionCount || 6} Multiple-Choice-Fragen.
+WICHTIG: Die richtige Antwort darf NICHT immer Option A sein! Verteile correctIndex (0, 1, 2 oder 3) abwechselnd und zufällig!
 [
   {
-    "question": "Frage?",
-    "options": ["Richtige Antwort", "Falsche Option 1", "Falsche Option 2", "Falsche Option 3"],
+    "question": "Frage mit richtiger Antwort bei Option C?",
+    "options": ["Falsche Option A", "Falsche Option B", "Richtige Antwort C", "Falsche Option D"],
+    "correctIndex": 2,
+    "explanation": "Didaktische Begründung."
+  },
+  {
+    "question": "Frage mit richtiger Antwort bei Option A?",
+    "options": ["Richtige Antwort A", "Falsche Option B", "Falsche Option C", "Falsche Option D"],
     "correctIndex": 0,
     "explanation": "Didaktische Begründung."
   }
@@ -298,9 +305,11 @@ CHECKLIST:
   "Ich kann mein Wissen auf neue Aufgaben anwenden"
 ]
 SEARCH:
+Valides JSON-Array von genau ${form.stationCustomization?.youtubeLinkCount || 3} YouTube-Suchbegriffen:
 [
   "${topic?.title || 'Thema'} einfach erklärt",
-  "${topic?.title || 'Thema'} Dokumentation Schule"
+  "${topic?.title || 'Thema'} Dokumentation Schule",
+  "${topic?.title || 'Thema'} Zusammenfassung"
 ]
 ` : ''}
 
@@ -424,8 +433,28 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
     return null;
   };
 
+  // Anti-A-Bias: Shuffle quiz question options so Option A is never systematically the correct answer
+  function shuffleOptionsList<T extends { options: string[]; correctIndex: number }>(items: T[]): T[] {
+    return items.map(q => {
+      if (!q.options || q.options.length <= 1) return q;
+      const correctVal = q.options[q.correctIndex] ?? q.options[0];
+      const shuffled = [...q.options];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const newIdx = shuffled.indexOf(correctVal);
+      return {
+        ...q,
+        options: shuffled,
+        correctIndex: newIdx !== -1 ? newIdx : 0
+      };
+    });
+  }
+
   // Parse Questions
   let questions: QuizQuestion[] = extractJsonArray<QuizQuestion>(gameQuestionsRaw) || [];
+  questions = shuffleOptionsList(questions);
 
   // Parse Order Items
   let orderSequence: string[] = extractJsonArray<string>(gameOrderRaw) || [];
@@ -575,6 +604,7 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
         explanation: q.explanation || ''
       }));
     }
+    stationQuiz = shuffleOptionsList(stationQuiz);
 
     // 8. Reflection
     let reflectionChecklist: string[] = [];
@@ -623,6 +653,7 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
       inclusionTips,
       flashcards: form.stationModules?.flashcards !== false ? flashcards : [],
       clozeHtml,
+      clozeWithWordBank: form.stationCustomization?.clozeWithWordBank ?? true,
       afbTasks: form.stationModules?.afbTasks !== false ? afbTasks : [],
       specialModuleTitle,
       specialItems: form.stationModules?.specialModule !== false ? specialItems : [],

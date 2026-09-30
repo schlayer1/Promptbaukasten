@@ -73,7 +73,10 @@ export const TabWorksheetPrint: React.FC<TabWorksheetPrintProps> = ({
       </div>
 
       {/* PRINT-OPTIMIZED DIN-A4 SHEET */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-float p-6 sm:p-10 max-w-4xl xl:max-w-5xl mx-auto print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none">
+      <div 
+        id="printable-worksheet"
+        className="printable-sheet bg-white rounded-2xl border border-slate-200 shadow-float p-6 sm:p-10 max-w-4xl xl:max-w-5xl mx-auto print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none print:w-full"
+      >
         
         {/* DIN-A4 SCHULISCHER KOPF */}
         <div className="border-b-2 border-school-primary pb-4 mb-6">
