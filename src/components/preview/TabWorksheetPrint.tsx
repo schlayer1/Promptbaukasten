@@ -6,7 +6,7 @@ interface TabWorksheetPrintProps {
   worksheetMarkdown: string;
   vocabulary: { term: string; explanation: string }[];
   subjectName: string;
-  gradeLevel: number;
+  gradeLevel: number | string;
   topicTitle: string;
   inclusionMode: boolean;
 }

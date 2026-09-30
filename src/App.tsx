@@ -34,7 +34,7 @@ import { AiProvider } from './types/ai';
 import { GradeLevel } from './types/curriculum';
 import { GeneratorFormState, ParsedGenerationOutput, ActiveOutputTab } from './types/generator';
 import { CloudMaterial } from './types/cloud';
-import { THUERINGEN_SUBJECTS } from './data/thueringenCurriculum';
+import { THUERINGEN_SUBJECTS, getDoubleGrade } from './data/thueringenCurriculum';
 import { PROVIDER_CONFIGS } from './data/defaultPresets';
 import { useAuth } from './context/AuthContext';
 import { saveMaterialToCloud } from './services/firebase';
@@ -50,7 +50,7 @@ export const App: React.FC = () => {
   const [formState, setFormState] = useState<GeneratorFormState>({
     format: 'arbeitsblatt',
     subjectId: 'deutsch',
-    gradeLevel: 6,
+    gradeLevel: '5/6',
     topicId: 'de-56-1',
     customTopicDetail: '',
     selectedOperators: ['nennen', 'beschreiben', 'erlaeutern', 'beurteilen'],
@@ -177,7 +177,7 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
     return parseAiOutput(sampleRaw, {
       format: 'arbeitsblatt',
       subjectId: 'deutsch',
-      gradeLevel: 6,
+      gradeLevel: '5/6',
       topicId: 'de-56-1',
       customTopicDetail: '',
       selectedOperators: ['nennen', 'beschreiben', 'erlaeutern', 'beurteilen'],
@@ -249,19 +249,18 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
   const handleSubjectChange = (subjectId: string) => {
     const sub = THUERINGEN_SUBJECTS.find(s => s.id === subjectId) || THUERINGEN_SUBJECTS[0];
     const newGrade = sub.allowedGrades.includes(formState.gradeLevel) ? formState.gradeLevel : sub.allowedGrades[0];
-    const newTopic = sub.topics[0]?.id || '';
+    const applicableTopic = sub.topics.find(t => t.doubleGrade === newGrade) || sub.topics[0];
     setFormState(prev => ({
       ...prev,
       subjectId,
       gradeLevel: newGrade,
-      topicId: newTopic
+      topicId: applicableTopic?.id || ''
     }));
   };
 
   const handleGradeChange = (gradeLevel: GradeLevel) => {
     const sub = THUERINGEN_SUBJECTS.find(s => s.id === formState.subjectId) || THUERINGEN_SUBJECTS[0];
-    const doubleGrade = gradeLevel <= 6 ? '5/6' : gradeLevel <= 8 ? '7/8' : '9/10';
-    const applicableTopic = sub.topics.find(t => t.doubleGrade === doubleGrade) || sub.topics[0];
+    const applicableTopic = sub.topics.find(t => t.doubleGrade === gradeLevel) || sub.topics[0];
     setFormState(prev => ({
       ...prev,
       gradeLevel,
@@ -283,7 +282,7 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
     setFormState({
       format: 'arbeitsblatt',
       subjectId: 'deutsch',
-      gradeLevel: 6,
+      gradeLevel: '5/6',
       topicId: 'de-56-1',
       customTopicDetail: '',
       selectedOperators: ['nennen', 'beschreiben', 'erlaeutern', 'beurteilen'],
@@ -396,7 +395,7 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
         subjectId: formState.subjectId,
         subjectName: currentSub.name,
         gradeLevel: formState.gradeLevel,
-        doubleGrade: formState.gradeLevel <= 6 ? '5/6' : formState.gradeLevel <= 8 ? '7/8' : '9/10',
+        doubleGrade: getDoubleGrade(formState.gradeLevel),
         topicTitle: currentTop?.title || 'Unterrichtsthema',
         customTopicDetail: formState.customTopicDetail,
         worksheetMarkdown: output.worksheetMarkdown,
@@ -441,7 +440,7 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
       ...prev,
       format: material.format || prev.format,
       subjectId: material.subjectId || prev.subjectId,
-      gradeLevel: (material.gradeLevel as GradeLevel) || prev.gradeLevel,
+      gradeLevel: (getDoubleGrade(material.gradeLevel as any) as GradeLevel) || prev.gradeLevel,
       customTopicDetail: material.customTopicDetail || ''
     }));
 

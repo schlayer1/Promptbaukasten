@@ -9,7 +9,7 @@ export interface QuizQuestion {
 export interface BuildGameOptions {
   title: string;
   subject: string;
-  grade: number;
+  grade: number | string;
   topic: string;
   questions: QuizQuestion[];
   inclusionMode?: boolean;

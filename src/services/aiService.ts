@@ -1,6 +1,6 @@
 import { AiProvider, ApiKeyStore, GenerationRequest, GenerationResponse } from '../types/ai';
 import { GeneratorFormState, ParsedGenerationOutput } from '../types/generator';
-import { THUERINGEN_SUBJECTS } from '../data/thueringenCurriculum';
+import { THUERINGEN_SUBJECTS, getGradeLabel } from '../data/thueringenCurriculum';
 import { THUERINGEN_OPERATORS } from '../data/thueringenOperators';
 import { TASK_FORMATS, PROVIDER_CONFIGS } from '../data/defaultPresets';
 import { callGeminiApi, DEFAULT_SCHOOL_GEMINI_KEY } from './geminiEngine';
@@ -186,7 +186,7 @@ ${form.includeMisconceptions ? `- DIDAKTISCHER FEHLKONZEPT-FOKUS AKTIV: Die fals
 === RAHMENDATEN ===
 - Format: ${format.title} (${format.subtitle})
 - Fach: ${subject.name} (${subject.category})
-- Klassenstufe: Klasse ${form.gradeLevel} (Regelschule Thüringen)
+- Klassenstufe: ${getGradeLabel(form.gradeLevel)} (Regelschule Thüringen)
 - ThILLM-Lehrplanthema: "${topic?.title || 'Freies Thema'}"
 - Kernkompetenzen laut Lehrplan:
 ${topic?.coreCompetencies.map(c => `  * ${c}`).join('\n') || '  * Fachspezifische Kernkompetenzen'}

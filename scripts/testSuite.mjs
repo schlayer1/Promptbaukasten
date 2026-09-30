@@ -78,7 +78,7 @@ async function runTests() {
       format: "lernspiel",
       subjectId: "biologie",
       subjectName: "Biologie",
-      gradeLevel: 7,
+      gradeLevel: "7/8",
       doubleGrade: "7/8",
       topicTitle: "Pflanzen & Stoffwechsel",
       customTopicDetail: "Schwerpunkt Lichtreaktion und Blattaufbau",

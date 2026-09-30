@@ -7,7 +7,7 @@ interface TabRubricAssessmentProps {
   rubricMarkdown: string;
   topicTitle: string;
   subjectName: string;
-  gradeLevel: number;
+  gradeLevel: number | string;
   onRubricChange?: (updatedMarkdown: string) => void;
 }
 

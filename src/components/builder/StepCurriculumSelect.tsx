@@ -39,7 +39,9 @@ export const StepCurriculumSelect: React.FC<StepCurriculumSelectProps> = ({
           <span className="w-5 h-5 rounded-full bg-school-primary text-white text-[11px] font-bold flex items-center justify-center">2</span>
           Fach, Klasse & Lehrplanthema (ThILLM)
         </label>
-        <span className="text-[11px] font-semibold text-school-primary">Stufe {currentDoubleGrade}</span>
+        <span className="text-[11px] font-semibold text-school-primary">
+          {gradeLevel.includes('/') ? `Doppelstufe ${gradeLevel}` : `Klasse ${gradeLevel}`}
+        </span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -97,7 +99,9 @@ export const StepCurriculumSelect: React.FC<StepCurriculumSelectProps> = ({
       <div>
         <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
           <span>ThILLM-Lernbereich / Lehrplanthema</span>
-          <span className="text-[11px] font-normal text-slate-400">Doppelstufe {currentDoubleGrade}</span>
+          <span className="text-[11px] font-normal text-slate-400">
+            {gradeLevel.includes('/') ? `Doppelstufe ${gradeLevel}` : `Jahrgang ${gradeLevel}`}
+          </span>
         </label>
         
         {applicableTopics.length > 0 ? (

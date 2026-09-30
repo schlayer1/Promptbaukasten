@@ -1,6 +1,6 @@
-export type GradeLevel = 5 | 6 | 7 | 8 | 9 | 10;
-
-export type DoubleGrade = '5/6' | '7/8' | '9/10';
+export type GradeBand = '5/6' | '7/8' | '9' | '10';
+export type GradeLevel = GradeBand;
+export type DoubleGrade = GradeBand;
 
 export type SubjectCategory = 
   | 'Kernfächer'

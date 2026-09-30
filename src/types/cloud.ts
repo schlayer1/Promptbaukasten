@@ -6,7 +6,7 @@ export interface CloudMaterial {
   format: TaskFormatId;
   subjectId: string;
   subjectName: string;
-  gradeLevel: number;
+  gradeLevel: number | string;
   doubleGrade: string;
   topicTitle: string;
   customTopicDetail?: string;

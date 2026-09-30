@@ -36,7 +36,7 @@ export interface StationQuizQuestion {
 export interface BuildStationOptions {
   title: string;
   subject: string;
-  grade: number;
+  grade: number | string;
   topic: string;
   goals?: string[];
   knowledgeHtml?: string;
