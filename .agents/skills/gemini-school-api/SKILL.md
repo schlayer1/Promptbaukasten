@@ -5,12 +5,12 @@ description: >-
   der Heimbürgeschule Kahla (Appportal, Kahoot, Menti, Translatorapp, Promptbaukasten).
   Dokumentiert verifizierte Flash-Modelle, schließt veraltete/eingestellte Modelle (1.5, 2.0, 2.5) 
   konsequent aus, liefert die bewährte Kaskaden-Logik mit Schulschlüssel-Fallback und regelt
-  den schlanken Gemini-Standard sowie den Vercel-Environment-Setup-Workflow.
+  den schlanken Gemini-Standard sowie den Vercel-Environment-Setup-Workflow mit Serverless-Proxy.
 ---
 
 # Google Gemini API Referenzstandard für Schul-Webapplikationen
 
-Dieses Regelwerk und Moduldesign verhindert typische Modellfehler (`404 Not Found`, `410 Gone`, `429 Rate Limit`, `"no longer available to new users"`), die auftreten, wenn veraltete Modellbezeichner in neuen Projekten hartcodiert werden, sowie API-Key-Sperrungen durch ungewollte clientseitige Offenlegung.
+Dieses Regelwerk und Moduldesign verhindert typische Modellfehler (`404 Not Found`, `410 Gone`, `429 Rate Limit`, `"no longer available to new users"`), die auftreten, wenn veraltete Modellbezeichner in neuen Projekten hartcodiert werden, sowie API-Key-Sperrungen durch ungewollte clientseitige Offenlegung im Browser.
 
 ---
 
@@ -52,20 +52,14 @@ Diese Modelle werfen Fehler und dürfen **weder** als Fallback noch in Dropdowns
 > Jeder exponierte Schlüssel führt zur sofortigen automatischen Schließung und Sperrung des Google-Cloud-Projekts.
 > Zudem blockiert Vercel das Speichern von Variablen mit `VITE_`-Prefix als echtes `Secret`, weil Public-Prefixes Werte im Browser-Bundle exponieren.
 
-### Die moderne Architektur: Serverless Proxy (`/api/gemini`)
-1. **Server-Secret in Vercel**: `GEMINI_API_KEY` wird als **Type: Secret** ohne `VITE_`-Prefix hinterlegt.
-2. **Serverless Function**: `api/gemini.ts` führt die Modell-Kaskade serverseitig aus. Der geheime Schlüssel verlässt niemals die Server-Infrastruktur.
-3. **Persönlicher Lehrkraft-Schlüssel (BYOK)**: Falls Lehrkräfte im Browser einen eigenen Schlüssel in den Einstellungen speichern, wird dieser im Request-Body an `/api/gemini` übergeben und hat Vorrang.
-4. **Vite Local Dev & Preview**: In `vite.config.ts` fängt ein Proxy-Middleware-Plugin `/api/gemini` ab, sodass Tests und `npm run dev` / `npm run preview` lokal identisch funktionieren.
+### Die 3 Bausteine der Serverless-Architektur:
 
----
-
-## 3. Die Ausfall-Kaskade (`executeWithCascade`)
-
-Niemals nur einen einzigen Modellnamen aufrufen! Wenn Google auf einem Server hohe Last (`503`), ein Rate-Limit (`429`) oder Modelländerungen (`404`) meldet, schaltet die Kaskade **stillschweigend innerhalb von Millisekunden auf das nächste Modell** um:
+#### 1. Serverless Function (`api/gemini.ts`)
+Wird von Vercel automatisch als geschützter Serverless-Endpunkt bereitgestellt. Liest `process.env.GEMINI_API_KEY` (Secret):
 
 ```typescript
-export const CANDIDATE_FLASH_MODELS = [
+// api/gemini.ts
+const CANDIDATE_FLASH_MODELS = [
   'gemini-flash-lite-latest',
   'gemini-3-flash-preview',
   'gemini-flash-latest',
@@ -75,11 +69,147 @@ export const CANDIDATE_FLASH_MODELS = [
   'gemini-3.5-flash',
   'gemini-3.1-flash-lite-preview',
 ];
+
+export default async function handler(req: any, res: any) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Nur POST-Anfragen zulässig.' });
+  }
+
+  try {
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch { return res.status(400).json({ error: 'Ungültiges JSON' }); }
+    }
+    body = body || {};
+
+    const { systemPrompt, userPrompt, model, temperature = 0.3 } = body;
+    const clientKey = (typeof body.apiKey === 'string' && body.apiKey.trim() !== 'serverless-proxy')
+      ? body.apiKey.trim()
+      : '';
+    const serverKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
+    const activeKey = clientKey || serverKey;
+
+    if (!activeKey) {
+      return res.status(401).json({
+        error: 'Kein Gemini API-Schlüssel konfiguriert. Bitte hinterlege GEMINI_API_KEY in Vercel als Secret.'
+      });
+    }
+
+    const candidateModels = [];
+    if (model && model !== 'auto') candidateModels.push(model);
+    for (const m of CANDIDATE_FLASH_MODELS) {
+      if (!candidateModels.includes(m)) candidateModels.push(m);
+    }
+
+    const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${userPrompt}` : userPrompt;
+    let lastErrorMessage = '';
+
+    for (const currentModel of candidateModels) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${activeKey}`;
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+            generationConfig: { temperature, maxOutputTokens: 6000 }
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            return res.status(200).json({ text, model: currentModel });
+          }
+        }
+        const errJson = await response.json().catch(() => ({}));
+        lastErrorMessage = errJson.error?.message || `HTTP ${response.status}`;
+      } catch (err: any) {
+        lastErrorMessage = err?.message || String(err);
+      }
+    }
+
+    return res.status(502).json({ error: `Kein Modell erreichbar: ${lastErrorMessage}` });
+  } catch (err: any) {
+    return res.status(500).json({ error: err?.message || 'Serverfehler im Gemini-Proxy' });
+  }
+}
+```
+
+#### 2. Lokaler Vite Proxy (`vite.config.ts`)
+Ermöglicht identisches Verhalten bei lokalem `npm run dev` und `npm run preview`:
+
+```typescript
+function geminiLocalProxyPlugin(): Plugin {
+  return {
+    name: 'gemini-local-proxy',
+    configureServer(server) {
+      server.middlewares.use(async (req: any, res: any, next: any) => {
+        if (req.url?.split('?')[0] === '/api/gemini') {
+          // Handhabung identisch zu handler(...) oben
+        } else {
+          next();
+        }
+      });
+    },
+    configurePreviewServer(server) {
+      // identische Middleware für Preview
+    }
+  };
+}
+```
+
+#### 3. Frontend-Aufruf (`src/services/geminiEngine.ts`)
+Ruft standardmäßig `/api/gemini` auf. Bei rein statischem Hosting (404) und vorhandenem Schlüssel greift der automatische Direkt-Fallback:
+
+```typescript
+export async function callGeminiApi({ apiKey, systemPrompt, userPrompt, model, temperature = 0.3 }): Promise<string> {
+  const cleanKey = apiKey?.trim() || '';
+  const effectiveClientKey = (cleanKey && cleanKey !== 'serverless-proxy') ? cleanKey : '';
+
+  try {
+    const proxyResponse = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: effectiveClientKey || undefined,
+        systemPrompt,
+        userPrompt,
+        model,
+        temperature
+      })
+    });
+
+    if (proxyResponse.ok) {
+      const data = await proxyResponse.json();
+      if (data?.text) return data.text;
+    }
+    if (proxyResponse.status !== 404) {
+      const errJson = await proxyResponse.json().catch(() => ({}));
+      throw new Error(errJson?.error || `HTTP ${proxyResponse.status}`);
+    }
+  } catch (proxyErr: any) {
+    if (proxyErr.message && !proxyErr.message.includes('404')) throw proxyErr;
+  }
+
+  // Fallback: Direktaufruf
+  ...
+}
 ```
 
 ---
 
-## 4. Verbindlicher Vercel Handover Workflow
+## 3. Verbindlicher Vercel Handover Workflow (Anleitung für den Nutzer)
 
 Sobald die KI-Integration in einem Projekt technisch implementiert und lauffähig ist, muss der Assistent den Nutzer am Ende des Tasks **aktiv und verständlich** anleiten, wie der Schlüssel in Vercel als Secret hinterlegt wird:
 
@@ -87,13 +217,14 @@ Sobald die KI-Integration in einem Projekt technisch implementiert und lauffähi
    - Gehe im Vercel-Dashboard deines Projekts auf: **Settings** $\rightarrow$ **Environment Variables**.
    - **Key**: `GEMINI_API_KEY` (ohne `VITE_`-Prefix!)
    - **Value**: `[Dein Gemini API-Schlüssel von aistudio.google.com]`
-   - **Type**: `Secret` (sensitiv geschützt)
-   - **Environments**: Alle Haken setzen (`Production`, `Preview`, `Development`).
+   - **Type**: `Secret` (sensitiv geschützt, wird von Vercel ohne Warnung akzeptiert)
+   - **Environments**: Alle 3 Haken setzen (`Production`, `Preview`, `Development`).
+   - Auf **Save** klicken.
    - Anschließend unter **Deployments** beim neuesten Deployment auf die drei Punkte (...) klicken und **Redeploy** wählen.
 
 ---
 
-## 5. Checkliste für Module in Antigravity
+## 4. Checkliste für Module in Antigravity
 1. Wurde sichergestellt, dass KEIN API-Key im Quellcode steht (weder Plaintext noch Base64)?
 2. Wurde der Serverless-Proxy `/api/gemini` für sichere Key-Verwaltung als Vercel-Secret (`GEMINI_API_KEY`) implementiert?
 3. Wurde `gemini-flash-lite-latest` als primäres Modell in der Kaskade gewählt?
