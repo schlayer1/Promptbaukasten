@@ -121,9 +121,12 @@ export function getEffectiveApiKey(provider: AiProvider): { key: string; isCusto
     return { key: envKey.trim(), isCustom: false };
   }
 
-  // Automatischer Schulschlüssel für Gemini (HBS Standard)
-  if (provider === 'gemini' && DEFAULT_SCHOOL_GEMINI_KEY) {
-    return { key: DEFAULT_SCHOOL_GEMINI_KEY, isCustom: false };
+  // Automatischer Schulschlüssel für Gemini (HBS Standard via Serverless Proxy / Vercel Secret)
+  if (provider === 'gemini') {
+    if (DEFAULT_SCHOOL_GEMINI_KEY) {
+      return { key: DEFAULT_SCHOOL_GEMINI_KEY, isCustom: false };
+    }
+    return { key: 'serverless-proxy', isCustom: false };
   }
 
   return null;

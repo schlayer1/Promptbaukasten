@@ -1,7 +1,9 @@
 // Zukunftssichere Google Gemini Anbindung nach HBS-Schulstandard
 // Mit dynamischer Kaskade, automatischer Ausfall-Kette und Ausschluss eingestellter Modelle
+// Unterstützt sowohl Vercel Serverless Proxy (/api/gemini mit GEMINI_API_KEY Secret)
+// als auch direkten Client-Fallback (VITE_GEMINI_API_KEY oder persönlicher Key)
 
-// API-Key wird sicher aus Vercel / Vite Umgebungsvariablen bezogen (niemals im Quellcode hardcodiert)
+// Optionaler Legacy-Client-Key (wird nur verwendet, falls noch in Vite gesetzt)
 export const DEFAULT_SCHOOL_GEMINI_KEY = ((import.meta as any).env?.VITE_GEMINI_API_KEY as string)?.trim() || '';
 
 // Bekannte zukunftssichere Flash-Modelle in bevorzugter Prioritätsreihenfolge
@@ -44,13 +46,18 @@ let cachedDiscoveredModels: string[] = [];
 /**
  * Ermittelt live alle aktiven Textmodelle direkt über die Google API
  */
-export async function discoverAvailableGeminiModels(apiKey: string): Promise<string[]> {
+export async function discoverAvailableGeminiModels(apiKey?: string): Promise<string[]> {
   if (cachedDiscoveredModels.length > 0) {
     return cachedDiscoveredModels;
   }
 
+  const cleanKey = apiKey?.trim() || '';
+  if (!cleanKey || cleanKey === 'serverless-proxy') {
+    return CANDIDATE_FLASH_MODELS;
+  }
+
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`);
     if (res.ok) {
       const data = await res.json();
       const rawModels: any[] = data.models || [];
@@ -81,7 +88,8 @@ export async function discoverAvailableGeminiModels(apiKey: string): Promise<str
 }
 
 /**
- * Ruft Gemini mit automatischer Kaskadierung über funktionierende Modelle auf
+ * Ruft Gemini auf: Bevorzugt über den sicheren Vercel-Serverless-Proxy (/api/gemini mit GEMINI_API_KEY Secret).
+ * Fällt bei rein statischem Hosting (404) und vorhandenem Schlüssel automatisch auf Direktaufruf zurück.
  */
 export async function callGeminiApi({
   apiKey,
@@ -96,9 +104,53 @@ export async function callGeminiApi({
   model?: string;
   temperature?: number;
 }): Promise<string> {
-  const activeKey = apiKey?.trim() || DEFAULT_SCHOOL_GEMINI_KEY;
-  if (!activeKey) {
-    throw new Error('Kein Gemini API-Schlüssel verfügbar. Bitte trage deinen API-Key in den Einstellungen (Schlüssel-Icon oben rechts) ein oder hinterlege VITE_GEMINI_API_KEY in Vercel.');
+  const cleanKey = apiKey?.trim() || '';
+  const effectiveClientKey = (cleanKey && cleanKey !== 'serverless-proxy') ? cleanKey : '';
+
+  // 1. Primärer Pfad: Sicherer Serverless Proxy (/api/gemini)
+  try {
+    const proxyResponse = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: effectiveClientKey || undefined,
+        systemPrompt,
+        userPrompt,
+        model,
+        temperature
+      })
+    });
+
+    if (proxyResponse.ok) {
+      const data = await proxyResponse.json();
+      if (data?.text) {
+        if (data.model) {
+          cachedWorkingModel = data.model;
+        }
+        return data.text;
+      }
+    }
+
+    // Wenn /api/gemini existiert (z. B. Status 400, 401, 500, 502), Fehlermeldung direkt verarbeiten
+    if (proxyResponse.status !== 404) {
+      const errJson = await proxyResponse.json().catch(() => ({}));
+      const errMsg = errJson?.error || `HTTP ${proxyResponse.status} von /api/gemini`;
+      throw new Error(errMsg);
+    }
+  } catch (proxyErr: any) {
+    // Wenn es ein echter Validierungs- oder API-Fehler vom Server war, diesen direkt werfen
+    if (proxyErr.message && !proxyErr.message.includes('404') && !proxyErr.message.includes('Failed to fetch')) {
+      throw proxyErr;
+    }
+    console.warn('[GeminiEngine] /api/gemini nicht erreichbar, versuche Direkt-Fallback...');
+  }
+
+  // 2. Sekundärer Pfad: Direkter Browser-Aufruf (nur wenn ein echter Key vorhanden ist)
+  const directKey = effectiveClientKey || DEFAULT_SCHOOL_GEMINI_KEY;
+  if (!directKey) {
+    throw new Error(
+      'Kein Gemini API-Schlüssel verfügbar. Bitte trage deinen API-Key in den Einstellungen (Schlüssel-Icon oben rechts) ein oder hinterlege GEMINI_API_KEY in Vercel als Secret.'
+    );
   }
 
   // Modell-Kandidaten-Kette aufbauen
@@ -122,7 +174,7 @@ export async function callGeminiApi({
   }
 
   // 4. Live entdeckte Modelle anhängen
-  const discovered = await discoverAvailableGeminiModels(activeKey);
+  const discovered = await discoverAvailableGeminiModels(directKey);
   for (const m of discovered) {
     if (!candidateModels.includes(m)) {
       candidateModels.push(m);
@@ -132,7 +184,7 @@ export async function callGeminiApi({
   let lastError: any = null;
 
   for (const currentModel of candidateModels) {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${activeKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${directKey}`;
 
     try {
       const response = await fetch(endpoint, {

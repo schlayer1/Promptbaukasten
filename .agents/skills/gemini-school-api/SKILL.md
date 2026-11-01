@@ -10,7 +10,7 @@ description: >-
 
 # Google Gemini API Referenzstandard für Schul-Webapplikationen
 
-Dieses Regelwerk und Moduldesign verhindert typische Modellfehler (`404 Not Found`, `410 Gone`, `429 Rate Limit`, `"no longer available to new users"`), die auftreten, wenn veraltete Modellbezeichner in neuen Projekten hartcodiert werden.
+Dieses Regelwerk und Moduldesign verhindert typische Modellfehler (`404 Not Found`, `410 Gone`, `429 Rate Limit`, `"no longer available to new users"`), die auftreten, wenn veraltete Modellbezeichner in neuen Projekten hartcodiert werden, sowie API-Key-Sperrungen durch ungewollte clientseitige Offenlegung.
 
 ---
 
@@ -43,23 +43,20 @@ Diese Modelle werfen Fehler und dürfen **weder** als Fallback noch in Dropdowns
 
 ---
 
-## 2. Der sichere Schlüssel-Standard (BYOK & Vercel Env) – NIEMALS Keys im Code!
+## 2. Der sichere Serverless-Proxy-Standard (`GEMINI_API_KEY` als Vercel Secret)
 
 > [!CAUTION]
 > **STRIKTES SICHERHEITSGEBOT (SECRET PROTECTION):**
 > API-Keys dürfen **NIEMALS** im Quellcode, Skripten oder Repositories hinterlegt werden – **auch nicht als Base64-kodierte Zeichenketten**!
 > GitHub und Google durchsuchen öffentliche Repositories mit automatisierten Secret-Scannern in Echtzeit und dekodieren Base64 automatisch.
 > Jeder exponierte Schlüssel führt zur sofortigen automatischen Schließung und Sperrung des Google-Cloud-Projekts.
+> Zudem blockiert Vercel das Speichern von Variablen mit `VITE_`-Prefix als echtes `Secret`, weil Public-Prefixes Werte im Browser-Bundle exponieren.
 
-In jeder Schul-App muss die Schlüssel-Ermittlung daher ausschließlich sicher erfolgen:
-
-1. **Persönlicher Lehrkraft-Schlüssel (BYOK)** (aus `localStorage`)
-2. **Vercel / Vite Umgebungsvariable** (`import.meta.env.VITE_GEMINI_API_KEY`)
-
-```typescript
-// API-Key wird sicher aus Vercel / Vite Umgebungsvariablen bezogen (niemals im Quellcode hardcodiert)
-export const DEFAULT_SCHOOL_GEMINI_KEY = ((import.meta as any).env?.VITE_GEMINI_API_KEY as string)?.trim() || '';
-```
+### Die moderne Architektur: Serverless Proxy (`/api/gemini`)
+1. **Server-Secret in Vercel**: `GEMINI_API_KEY` wird als **Type: Secret** ohne `VITE_`-Prefix hinterlegt.
+2. **Serverless Function**: `api/gemini.ts` führt die Modell-Kaskade serverseitig aus. Der geheime Schlüssel verlässt niemals die Server-Infrastruktur.
+3. **Persönlicher Lehrkraft-Schlüssel (BYOK)**: Falls Lehrkräfte im Browser einen eigenen Schlüssel in den Einstellungen speichern, wird dieser im Request-Body an `/api/gemini` übergeben und hat Vorrang.
+4. **Vite Local Dev & Preview**: In `vite.config.ts` fängt ein Proxy-Middleware-Plugin `/api/gemini` ab, sodass Tests und `npm run dev` / `npm run preview` lokal identisch funktionieren.
 
 ---
 
@@ -78,65 +75,28 @@ export const CANDIDATE_FLASH_MODELS = [
   'gemini-3.5-flash',
   'gemini-3.1-flash-lite-preview',
 ];
-
-const SUNSET_OR_DISCONTINUED_PATTERNS = [
-  '2.5-flash', '2.5-pro', '1.5-flash', '1.5-pro', '1.0-pro', 
-  '2.0-flash', '2.0-pro', '8b', 'embedding', 'aqa', 'tts', 'image'
-];
-```
-
-### Kaskaden-Schleife:
-```typescript
-for (const model of candidateModels) {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
-  
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 }
-      })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) {
-        cachedWorkingModel = model;
-        return text;
-      }
-    }
-    // Bei 503, 429 oder 404: nächste Iteration der Schleife
-  } catch (err) {
-    // Weitermachen mit nächstem Kandidaten
-  }
-}
 ```
 
 ---
 
-## 4. Verbindlicher Abschluss-Schritt: Vercel Handover Workflow
+## 4. Verbindlicher Vercel Handover Workflow
 
-Sobald die KI-Integration in einem Projekt technisch implementiert und lauffähig ist, muss der Assistent den Nutzer am Ende des Tasks **aktiv und unaufgefordert** nach dem API-Key fragen und die Schritte zur Hinterlegung auf Vercel erläutern:
+Sobald die KI-Integration in einem Projekt technisch implementiert und lauffähig ist, muss der Assistent den Nutzer am Ende des Tasks **aktiv und verständlich** anleiten, wie der Schlüssel in Vercel als Secret hinterlegt wird:
 
-1. **Nutzer-Abfrage**:
-   > *"Die technische KI-Anbindung ist eingerichtet. Möchtest du deinen eigenen Gemini API-Key direkt hinterlegen, oder soll ich dir die Schritte für Vercel zeigen?"*
-
-2. **Vercel-Anleitung**:
+1. **Vercel-Anleitung**:
    - Gehe im Vercel-Dashboard deines Projekts auf: **Settings** $\rightarrow$ **Environment Variables**.
-   - **Key**: `VITE_GEMINI_API_KEY`
+   - **Key**: `GEMINI_API_KEY` (ohne `VITE_`-Prefix!)
    - **Value**: `[Dein Gemini API-Schlüssel von aistudio.google.com]`
-   - **Environment**: Alle Haken setzen (`Production`, `Preview`, `Development`).
+   - **Type**: `Secret` (sensitiv geschützt)
+   - **Environments**: Alle Haken setzen (`Production`, `Preview`, `Development`).
    - Anschließend unter **Deployments** beim neuesten Deployment auf die drei Punkte (...) klicken und **Redeploy** wählen.
 
 ---
 
-## 5. Checkliste für neue Module in Antigravity
+## 5. Checkliste für Module in Antigravity
 1. Wurde sichergestellt, dass KEIN API-Key im Quellcode steht (weder Plaintext noch Base64)?
-2. Wurde `DEFAULT_SCHOOL_GEMINI_KEY` ausschließlich an `import.meta.env.VITE_GEMINI_API_KEY` gebunden?
-2. Wurde `gemini-flash-lite-latest` als primäres Modell gewählt?
-3. Wurden alte 1.5er und 2.0er / 2.5er Namen aus Dropdowns und Arrays verbannt?
-4. Wurde die Modellauswahl schlank auf Gemini gehalten (sofern keine Drittanbieter gefordert waren)?
-5. Wurde nach Abschluss aktiv nach dem API-Key und Vercel-Setup gefragt?
+2. Wurde der Serverless-Proxy `/api/gemini` für sichere Key-Verwaltung als Vercel-Secret (`GEMINI_API_KEY`) implementiert?
+3. Wurde `gemini-flash-lite-latest` als primäres Modell in der Kaskade gewählt?
+4. Wurden alte 1.5er und 2.0er / 2.5er Namen aus Dropdowns und Arrays verbannt?
+5. Wurde die Modellauswahl schlank auf Gemini gehalten (sofern keine Drittanbieter gefordert waren)?
+6. Wurden lokale Vite-Middlewares für `npm run dev` und `npm run preview` in `vite.config.ts` integriert?

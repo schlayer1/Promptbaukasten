@@ -84,7 +84,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
             <Server className="w-5 h-5 text-school-primary shrink-0 mt-0.5" />
             <div>
               <strong className="block font-semibold mb-1">Vercel & Schulnetz-Hinweis:</strong>
-              Wenn du diesen Baukasten auf Vercel deployst, kannst du die Umgebungsvariablen (<code className="bg-white px-1.5 py-0.5 rounded text-school-primary font-mono font-bold">VITE_GEMINI_API_KEY</code>, etc.) in den Vercel Project Settings hinterlegen. Die App nutzt diese automatisch als Fallback, falls Lehrkräfte keinen individuellen Schlüssel eintragen!
+              Wenn du diesen Baukasten auf Vercel deployst, kannst du den Gemini-Key sicher als Secret unter <code className="bg-white px-1.5 py-0.5 rounded text-school-primary font-mono font-bold">GEMINI_API_KEY</code> (ohne VITE-Prefix) in den Vercel Project Settings hinterlegen. Die App nutzt den internen Serverless-Proxy automatisch als Fallback, falls Lehrkräfte keinen individuellen Schlüssel eintragen!
             </div>
           </div>
 
