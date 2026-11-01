@@ -1,16 +1,8 @@
 // Zukunftssichere Google Gemini Anbindung nach HBS-Schulstandard
 // Mit dynamischer Kaskade, automatischer Ausfall-Kette und Ausschluss eingestellter Modelle
 
-const decodeDefaultKey = (): string => {
-  try {
-    const b64 = 'QVEuQWI4Uk42SUpRQTM1V0ZScTRfLTdsUFAxQVU1Y1l5bkVTN3VmekZjdjlyZktHMjhhV2c=';
-    if (typeof atob !== 'undefined') return atob(b64);
-    if (typeof Buffer !== 'undefined') return Buffer.from(b64, 'base64').toString('utf8');
-  } catch {}
-  return '';
-};
-
-export const DEFAULT_SCHOOL_GEMINI_KEY = decodeDefaultKey();
+// API-Key wird sicher aus Vercel / Vite Umgebungsvariablen bezogen (niemals im Quellcode hardcodiert)
+export const DEFAULT_SCHOOL_GEMINI_KEY = ((import.meta as any).env?.VITE_GEMINI_API_KEY as string)?.trim() || '';
 
 // Bekannte zukunftssichere Flash-Modelle in bevorzugter Prioritätsreihenfolge
 export const CANDIDATE_FLASH_MODELS = [
@@ -106,7 +98,7 @@ export async function callGeminiApi({
 }): Promise<string> {
   const activeKey = apiKey?.trim() || DEFAULT_SCHOOL_GEMINI_KEY;
   if (!activeKey) {
-    throw new Error('Kein Gemini API-Schlüssel verfügbar.');
+    throw new Error('Kein Gemini API-Schlüssel verfügbar. Bitte trage deinen API-Key in den Einstellungen (Schlüssel-Icon oben rechts) ein oder hinterlege VITE_GEMINI_API_KEY in Vercel.');
   }
 
   // Modell-Kandidaten-Kette aufbauen

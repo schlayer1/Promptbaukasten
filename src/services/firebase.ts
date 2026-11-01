@@ -15,8 +15,9 @@ import { PortalUser } from '../types/user';
 import { CloudMaterial } from '../types/cloud';
 
 // Offizielle Firebase Konfiguration des HBS App-Portals (terminkalender-7f269)
+// API-Key wird sicher aus Umgebungsvariablen bezogen (niemals im Quellcode hinterlegt)
 export const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAr8Q3RslUSuaJbIIGiINGV24nm26jYoLQ",
+  apiKey: ((import.meta as any).env?.VITE_FIREBASE_API_KEY as string)?.trim() || "",
   authDomain: "terminkalender-7f269.firebaseapp.com",
   projectId: "terminkalender-7f269",
   storageBucket: "terminkalender-7f269.firebasestorage.app",
@@ -70,8 +71,10 @@ export const INITIAL_SEED_TEACHERS: PortalUser[] = [
 export let db: Firestore | null = null;
 
 try {
-  const app = getApps().length === 0 ? initializeApp(DEFAULT_FIREBASE_CONFIG) : getApp();
-  db = getFirestore(app);
+  if (DEFAULT_FIREBASE_CONFIG.apiKey) {
+    const app = getApps().length === 0 ? initializeApp(DEFAULT_FIREBASE_CONFIG) : getApp();
+    db = getFirestore(app);
+  }
 } catch (err) {
   console.warn("[Firebase] Init-Warnung (Offline Cache aktiv):", err);
 }

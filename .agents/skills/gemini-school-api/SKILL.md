@@ -43,24 +43,22 @@ Diese Modelle werfen Fehler und dürfen **weder** als Fallback noch in Dropdowns
 
 ---
 
-## 2. Der 3-Stufen-Schlüssel-Standard (BYOK & Schul-Fallback)
+## 2. Der sichere Schlüssel-Standard (BYOK & Vercel Env) – NIEMALS Keys im Code!
 
-In jeder Schul-App muss die Schlüssel-Ermittlung in folgender Reihenfolge erfolgen:
+> [!CAUTION]
+> **STRIKTES SICHERHEITSGEBOT (SECRET PROTECTION):**
+> API-Keys dürfen **NIEMALS** im Quellcode, Skripten oder Repositories hinterlegt werden – **auch nicht als Base64-kodierte Zeichenketten**!
+> GitHub und Google durchsuchen öffentliche Repositories mit automatisierten Secret-Scannern in Echtzeit und dekodieren Base64 automatisch.
+> Jeder exponierte Schlüssel führt zur sofortigen automatischen Schließung und Sperrung des Google-Cloud-Projekts.
 
-1. **Persönlicher Lehrkraft-Schlüssel** (aus `localStorage`)
+In jeder Schul-App muss die Schlüssel-Ermittlung daher ausschließlich sicher erfolgen:
+
+1. **Persönlicher Lehrkraft-Schlüssel (BYOK)** (aus `localStorage`)
 2. **Vercel / Vite Umgebungsvariable** (`import.meta.env.VITE_GEMINI_API_KEY`)
-3. **Schul-Standardschlüssel** (als Base64 hinterlegt, damit Schüler/Lehrkräfte die App sofort ohne Login/Setup nutzen können):
 
 ```typescript
-const decodeDefaultKey = (): string => {
-  try {
-    const b64 = 'QVEuQWI4Uk42SUpRQTM1V0ZScTRfLTdsUFAxQVU1Y1l5bkVTN3VmekZjdjlyZktHMjhhV2c=';
-    if (typeof atob !== 'undefined') return atob(b64);
-    if (typeof Buffer !== 'undefined') return Buffer.from(b64, 'base64').toString('utf8');
-  } catch {}
-  return '';
-};
-export const DEFAULT_SCHOOL_GEMINI_KEY = decodeDefaultKey();
+// API-Key wird sicher aus Vercel / Vite Umgebungsvariablen bezogen (niemals im Quellcode hardcodiert)
+export const DEFAULT_SCHOOL_GEMINI_KEY = ((import.meta as any).env?.VITE_GEMINI_API_KEY as string)?.trim() || '';
 ```
 
 ---
@@ -136,7 +134,8 @@ Sobald die KI-Integration in einem Projekt technisch implementiert und lauffähi
 ---
 
 ## 5. Checkliste für neue Module in Antigravity
-1. Wurde `DEFAULT_SCHOOL_GEMINI_KEY` als Basis-Fallback eingebaut?
+1. Wurde sichergestellt, dass KEIN API-Key im Quellcode steht (weder Plaintext noch Base64)?
+2. Wurde `DEFAULT_SCHOOL_GEMINI_KEY` ausschließlich an `import.meta.env.VITE_GEMINI_API_KEY` gebunden?
 2. Wurde `gemini-flash-lite-latest` als primäres Modell gewählt?
 3. Wurden alte 1.5er und 2.0er / 2.5er Namen aus Dropdowns und Arrays verbannt?
 4. Wurde die Modellauswahl schlank auf Gemini gehalten (sofern keine Drittanbieter gefordert waren)?

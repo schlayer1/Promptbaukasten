@@ -12,10 +12,10 @@
   4. `gemini-3.6-flash` / `gemini-3.7-flash` / `gemini-3.8-flash`
   5. `gemini-3.5-flash`
 - Strictly forbid and filter out deprecated or unavailable models (`1.5`, `2.0`, `2.5`).
-- Ensure the 3-stage key resolution is in place:
+- Ensure the secure 2-stage key resolution is in place:
   1. User BYOK (`localStorage`)
   2. Vercel environment variable (`import.meta.env.VITE_GEMINI_API_KEY`)
-  3. Default school base64 fallback key.
+- NEVER hardcode API keys (neither plaintext nor base64 encoded) in the codebase or git repositories. Exposed keys in public repos trigger immediate Google Cloud project suspensions.
 
 ## 3. Mandatory Vercel Setup Handover
 - Immediately upon completing the technical implementation of an AI integration in any Appportal project, proactively prompt the user:
