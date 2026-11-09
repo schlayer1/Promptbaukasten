@@ -82,19 +82,37 @@ function geminiLocalProxyPlugin(): Plugin {
                 })
               });
 
-              if (fetchResp.ok) {
-                const data: any = await fetchResp.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
+              let data: any = null;
+              try {
+                data = await fetchResp.json();
+              } catch {
+                data = null;
+              }
+
+              if (fetchResp.ok && data) {
+                const firstCandidate = data.candidates?.[0];
+                const text = firstCandidate?.content?.parts?.[0]?.text;
+                if (text && typeof text === 'string' && text.trim().length > 0) {
                   res.statusCode = 200;
                   res.setHeader('Content-Type', 'application/json');
                   res.end(JSON.stringify({ text, model: currentModel }));
                   return;
                 }
+
+                const finishReason = firstCandidate?.finishReason;
+                const blockReason = data.promptFeedback?.blockReason;
+                if (finishReason && finishReason !== 'STOP') {
+                  lastErrorMessage = `Modell ${currentModel} beendete die Generierung mit Status "${finishReason}".`;
+                } else if (blockReason) {
+                  lastErrorMessage = `Prompt wurde durch Sicherheitsfilter geblockt (${blockReason}).`;
+                } else {
+                  lastErrorMessage = `Modell ${currentModel} lieferte eine leere Antwort.`;
+                }
+                continue;
               }
 
-              const errJson: any = await fetchResp.json().catch(() => ({}));
-              lastErrorMessage = errJson.error?.message || `HTTP ${fetchResp.status}`;
+              const errMsg = data?.error?.message || `HTTP ${fetchResp.status}`;
+              lastErrorMessage = errMsg;
             } catch (err: any) {
               lastErrorMessage = err?.message || String(err);
             }

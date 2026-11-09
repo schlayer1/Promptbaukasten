@@ -18,23 +18,23 @@ interface TabInteractiveGameProps {
   giftExport: string;
   title: string;
   onShowToast: (title: string, message?: string, type?: 'success' | 'error' | 'info') => void;
+  playerUrl?: string;
 }
 
 export const TabInteractiveGame: React.FC<TabInteractiveGameProps> = ({
   gameHtml,
   giftExport,
   title,
-  onShowToast
+  onShowToast,
+  playerUrl
 }) => {
   const [activeSubView, setActiveSubView] = useState<'sandbox' | 'qr' | 'code'>('sandbox');
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
   useEffect(() => {
-    // Generate QR Code containing either data URI or instruction
-    const dataUri = `data:text/html;charset=utf-8,${encodeURIComponent(gameHtml)}`;
-    // If string is too long for basic QR, generate with direct URL or placeholder
-    generateQrCodeDataUrl(window.location.href).then(setQrDataUrl);
-  }, [gameHtml]);
+    const targetUrl = playerUrl || window.location.href;
+    generateQrCodeDataUrl(targetUrl).then(setQrDataUrl);
+  }, [playerUrl, gameHtml]);
 
   const handleDownloadHtml = () => {
     const safeTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'lernspiel';

@@ -97,6 +97,14 @@ export interface ParsedGenerationOutput {
   generatedAt: string;
   orderSequence?: string[];
   escapeCode?: string;
+  meta?: {
+    subjectId: string;
+    subjectName: string;
+    gradeLevel: GradeLevel;
+    topicId: string;
+    topicTitle: string;
+    format: TaskFormatId;
+  };
 }
 
 export type ActiveOutputTab = 'game' | 'worksheet' | 'rubric' | 'prompt';

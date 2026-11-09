@@ -330,24 +330,23 @@ Valides JSON-Array von genau ${form.stationCustomization?.youtubeLinkCount || 3}
 ]
 ` : ''}
 
-<!-- SECTION:WORKSHEET -->
-Hier ein druckfertiges, ansprechendes DIN-A4-Arbeitsblatt im Markdown-Format:
-- Schulkopf: [Fach: ${subject.name} | Klasse: ${form.gradeLevel} | Name: ________ | Datum: ________]
-- Titel & motivierender Einleitungstext
-- 3 klar differenzierte Niveaustufen:
-  * NIVEAU GRÜN (AFB I - Basiswissen)
-  * NIVEAU GELB (AFB II - Transfer & Zusammenhang)
-  * NIVEAU ROT (AFB III - Urteil, Reflexion oder Gestaltung)
-- Ausführlicher Lösungsteil für die Lehrkraft am Ende
-
 <!-- SECTION:VOCABULARY -->
 Erstelle mindestens 4 bis 6 zentrale Fachbegriffe mit schülergerechter, einfacher Erklärung (Wortspeicher für DaZ & Förderung und Karten-Memory).
 Format:
 * **Fachbegriff 1**: Erklärung in einfacher Sprache
 * **Fachbegriff 2**: Erklärung in einfacher Sprache
 
+<!-- SECTION:WORKSHEET -->
+Hier das druckfertige, differenzierte DIN-A4-Arbeitsblatt im Markdown-Format:
+- Motivierender Einleitungstext
+- 3 klar differenzierte Niveaustufen:
+  * NIVEAU GRÜN (AFB I - Basiswissen)
+  * NIVEAU GELB (AFB II - Transfer & Zusammenhang)
+  * NIVEAU ROT (AFB III - Urteil, Reflexion oder Gestaltung)
+- Ausführlicher Lösungsteil für die Lehrkraft am Ende unter "### Musterlösung & Erwartungshorizont"
+
 <!-- SECTION:GAME_QUESTIONS -->
-Erstelle ein valides JSON-Array mit 5 bis 8 Multiple-Choice-Fragen für das interaktive Lernspiel (mit je 3-4 Optionen, 0-basiertem correctIndex, Erklärung und afbLevel).
+Erstelle ein valides JSON-Array mit ${form.format === 'lernspiel' ? '6 bis 8' : '4 bis 6'} Multiple-Choice-Fragen für das interaktive Lernspiel (mit je 3-4 Optionen, 0-basiertem correctIndex, didaktischer Erklärung und afbLevel).
 Format Beispiel:
 [
   {
@@ -359,7 +358,7 @@ Format Beispiel:
   }
 ]
 
-<!-- SECTION:GAME_ORDER -->
+${form.format === 'lernspiel' ? `<!-- SECTION:GAME_ORDER -->
 Erstelle ein valides JSON-Array mit 4 bis 6 Teilschritten oder Ereignissen in der KORREKTEN logischen/chronologischen Reihenfolge zum Thema:
 [
   "1. Schritt: Problem erfassen / Ausgangssituation",
@@ -370,6 +369,7 @@ Erstelle ein valides JSON-Array mit 4 bis 6 Teilschritten oder Ereignissen in de
 
 <!-- SECTION:ESCAPE_CODE -->
 4829
+` : ''}
 
 <!-- SECTION:RUBRIC -->
 Erstelle ein detailliertes tabellarisches Bewertungsraster (Erwartungshorizont):
@@ -386,18 +386,21 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
   const subject = THUERINGEN_SUBJECTS.find(s => s.id === form.subjectId) || THUERINGEN_SUBJECTS[0];
   const topic = subject.topics.find(t => t.id === form.topicId) || subject.topics[0];
 
-  // Helper to extract content between tags resiliently
+  // Helper to extract content between tags resiliently (tolerates variations in spacing & casing)
   const extractSection = (tag: string): string => {
-    const marker = `<!-- SECTION:${tag} -->`;
-    const startIdx = rawResponse.indexOf(marker);
-    if (startIdx === -1) return '';
-    const contentStart = startIdx + marker.length;
+    const startRegex = new RegExp(`<!--\\s*SECTION:\\s*${tag}\\s*-->`, 'i');
+    const startMatch = rawResponse.match(startRegex);
+    if (!startMatch || startMatch.index === undefined) return '';
 
-    const nextMarkerIdx = rawResponse.indexOf('<!-- SECTION:', contentStart);
-    if (nextMarkerIdx !== -1) {
-      return rawResponse.slice(contentStart, nextMarkerIdx).trim();
+    const contentStart = startMatch.index + startMatch[0].length;
+    const remaining = rawResponse.slice(contentStart);
+    const nextRegex = /<!--\s*SECTION:\s*[A-Z_]+\s*-->/i;
+    const nextMatch = remaining.match(nextRegex);
+
+    if (nextMatch && nextMatch.index !== undefined) {
+      return remaining.slice(0, nextMatch.index).trim();
     }
-    return rawResponse.slice(contentStart).trim();
+    return remaining.trim();
   };
 
   const worksheetRaw = extractSection('WORKSHEET');
@@ -451,22 +454,28 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
   };
 
   // Anti-A-Bias: Shuffle quiz question options so Option A is never systematically the correct answer
-  function shuffleOptionsList<T extends { options: string[]; correctIndex: number }>(items: T[]): T[] {
-    return items.map(q => {
-      if (!q.options || q.options.length <= 1) return q;
-      const correctVal = q.options[q.correctIndex] ?? q.options[0];
-      const shuffled = [...q.options];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      const newIdx = shuffled.indexOf(correctVal);
-      return {
-        ...q,
-        options: shuffled,
-        correctIndex: newIdx !== -1 ? newIdx : 0
-      };
-    });
+  function shuffleOptionsList<T extends { options: string[]; correctIndex: number }>(items: any[]): T[] {
+    if (!Array.isArray(items)) return [];
+    return items
+      .filter(item => item && typeof item === 'object')
+      .map(q => {
+        if (!Array.isArray(q.options) || q.options.length <= 1) return q as T;
+        const currentIdx = typeof q.correctIndex === 'number' && q.correctIndex >= 0 && q.correctIndex < q.options.length
+          ? q.correctIndex
+          : 0;
+        const correctVal = q.options[currentIdx] ?? q.options[0];
+        const shuffled = [...q.options];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        const newIdx = shuffled.indexOf(correctVal);
+        return {
+          ...q,
+          options: shuffled,
+          correctIndex: newIdx !== -1 ? newIdx : 0
+        } as T;
+      });
   }
 
   // Parse Questions
@@ -704,8 +713,16 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
 
   const giftExport = generateMoodleGiftExport(questions, topic?.title || subject.name);
 
-  // Fallback worksheet and rubric if tags were missing
-  const worksheetMarkdown = worksheetRaw || rawResponse;
+  // Clean redundant top-level headings from worksheetMarkdown that duplicate TabWorksheetPrint's DIN-A4 school header
+  let cleanedWorksheet = worksheetRaw || rawResponse;
+  if (cleanedWorksheet) {
+    cleanedWorksheet = cleanedWorksheet
+      .replace(/^#\s+[^\n\r]+\s*(\r?\n)+/, '')
+      .replace(/^(?:Klassenstufe|Fach|Staatliche Regelschule)[^\n\r]*(\r?\n)+/gi, '')
+      .trim();
+  }
+
+  const worksheetMarkdown = cleanedWorksheet || `### NIVEAU GRÜN (AFB I)\n1. Fachbegriffe zum Thema benennen.\n\n### NIVEAU GELB (AFB II)\n2. Zusammenhänge erläutern.\n\n### NIVEAU ROT (AFB III)\n3. Sachverhalt beurteilen.`;
   const rubricMarkdown = rubricRaw || `### Bewertungsraster & Erwartungshorizont\n\n| Aufgabe | AFB-Stufe | Kriterien | Punkte |\n|---|---|---|---|\n| Teil 1 | AFB I | Fachbegriffe korrekt benannt | 4 P. |\n| Teil 2 | AFB II | Zusammenhänge sachlich erläutert | 6 P. |\n| Teil 3 | AFB III | Begründetes Urteil gefällt | 4 P. |\n\n*Gesamt: 14 Punkte nach Thüringer Regelschul-Notenschlüssel.*`;
 
   const { userPrompt } = buildDidacticPrompt(form);
@@ -721,7 +738,15 @@ export function parseAiOutput(rawResponse: string, form: GeneratorFormState): Pa
     rawResponse,
     generatedAt: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
     orderSequence,
-    escapeCode
+    escapeCode,
+    meta: {
+      subjectId: form.subjectId,
+      subjectName: subject.name,
+      gradeLevel: form.gradeLevel,
+      topicId: form.topicId,
+      topicTitle: topic?.title || form.customTopicDetail || 'Unterrichtsthema',
+      format: form.format
+    }
   };
 }
 

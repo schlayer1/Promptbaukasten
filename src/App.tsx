@@ -10,7 +10,10 @@ import {
   Share2,
   CloudUpload,
   BookOpen,
-  Globe
+  Globe,
+  RotateCcw,
+  GraduationCap,
+  ExternalLink
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { ApiKeyModal } from './components/ApiKeyModal';
@@ -37,7 +40,7 @@ import { CloudMaterial } from './types/cloud';
 import { THUERINGEN_SUBJECTS, getDoubleGrade } from './data/thueringenCurriculum';
 import { PROVIDER_CONFIGS } from './data/defaultPresets';
 import { useAuth } from './context/AuthContext';
-import { saveMaterialToCloud } from './services/firebase';
+import { saveMaterialToCloud, loadMaterialsFromCloud } from './services/firebase';
 import { 
   buildDidacticPrompt, 
   executeGeneration, 
@@ -174,7 +177,7 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
 
 *Gesamtpunktzahl: 22 Punkte.*`;
 
-    return parseAiOutput(sampleRaw, {
+    const sampleParsed = parseAiOutput(sampleRaw, {
       format: 'arbeitsblatt',
       subjectId: 'deutsch',
       gradeLevel: '5/6',
@@ -217,7 +220,41 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
       customHtmlDesignPrompt: '',
       htmlBgPattern: 'auto'
     });
+
+    return {
+      ...sampleParsed,
+      meta: {
+        subjectId: 'deutsch',
+        subjectName: 'Deutsch (Erprobungsfassung 2026)',
+        gradeLevel: '5/6',
+        topicId: 'de-56-1',
+        topicTitle: 'Fabeln untersuchen & die Moral entschlüsseln',
+        format: 'arbeitsblatt'
+      }
+    };
   });
+
+  // --- PLAYER MODE & URL PARAMETER HANDLING ---
+  const [isPlayerMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('play') === '1' || params.get('play') === 'true';
+  });
+
+  // Auto-load material if ?material= or ?id= is in URL
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const materialId = params.get('material') || params.get('id');
+    if (materialId) {
+      loadMaterialsFromCloud().then(materials => {
+        const found = materials.find(m => m.id === materialId);
+        if (found) {
+          handleLoadMaterialFromCloud(found);
+        }
+      });
+    }
+  }, []);
 
   // --- UI DIALOGS & TOASTS ---
   const [isKeyModalOpen, setIsKeyModalOpen] = useState<boolean>(false);
@@ -433,7 +470,15 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
       giftExport: material.giftExport || '',
       promptText: material.promptText || '',
       rawResponse: '',
-      generatedAt: new Date(material.createdAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      generatedAt: new Date(material.createdAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      meta: {
+        subjectId: material.subjectId,
+        subjectName: material.subjectName,
+        gradeLevel: (getDoubleGrade(material.gradeLevel as any) as GradeLevel) || '5/6',
+        topicId: material.topicTitle,
+        topicTitle: material.topicTitle,
+        format: material.format
+      }
     });
 
     setFormState(prev => ({
@@ -454,6 +499,72 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
   const currentSubject = THUERINGEN_SUBJECTS.find(s => s.id === formState.subjectId) || THUERINGEN_SUBJECTS[0];
   const currentTopic = currentSubject.topics.find(t => t.id === formState.topicId) || currentSubject.topics[0];
   const { systemPrompt, userPrompt } = buildDidacticPrompt(formState);
+
+  const isStale = !!output.meta && output.meta.topicId !== formState.topicId;
+  const playerUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}${window.location.pathname}?play=1&subject=${encodeURIComponent(formState.subjectId)}&topic=${encodeURIComponent(formState.topicId)}`
+    : '';
+
+  // Render Fullscreen Player for pupils when ?play=1 or ?play=true
+  if (isPlayerMode) {
+    const title = output.meta?.topicTitle || currentTopic?.title || 'Interaktives Lernspiel';
+    const subName = output.meta?.subjectName || currentSubject.name;
+    const grade = output.meta?.gradeLevel || formState.gradeLevel;
+
+    return (
+      <div className="fixed inset-0 bg-slate-900 flex flex-col z-50">
+        {/* STUDENT TABLET TOP BAR */}
+        <div className="bg-slate-950 text-white px-4 py-3 border-b border-slate-800 flex items-center justify-between shrink-0 shadow-md">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-school-primary flex items-center justify-center font-bold text-white shadow-xs shrink-0">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-black truncate text-white">{title}</div>
+              <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
+                {subName} • Kl. {grade} • Staatliche Regelschule Heimbürgeschule Kahla
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                const blob = new Blob([output.gameHtml], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+              }}
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+              title="In separatem Vollbild-Tab öffnen"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Vollbild</span>
+            </button>
+
+            <a
+              href={window.location.pathname}
+              className="px-3 py-1.5 bg-school-primary hover:bg-school-primaryDark text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+              title="Zurück zum Unterrichts-Konfigurator"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Baukasten</span>
+            </a>
+          </div>
+        </div>
+
+        {/* FULLSCREEN GAME IFRAME */}
+        <div className="flex-1 w-full bg-slate-950 relative">
+          <iframe
+            srcDoc={output.gameHtml}
+            title={title}
+            className="w-full h-full border-none"
+            sandbox="allow-scripts allow-modals allow-same-origin"
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-school-surface flex flex-col font-sans pb-16 lg:pb-0">
@@ -675,8 +786,9 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
                 <TabInteractiveGame
                   gameHtml={output.gameHtml}
                   giftExport={output.giftExport}
-                  title={currentTopic?.title || currentSubject.name}
+                  title={output.meta?.topicTitle || currentTopic?.title || currentSubject.name}
                   onShowToast={addToast}
+                  playerUrl={playerUrl}
                 />
               )}
 
@@ -684,19 +796,22 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
                 <TabWorksheetPrint
                   worksheetMarkdown={output.worksheetMarkdown}
                   vocabulary={output.vocabulary}
-                  subjectName={currentSubject.name}
-                  gradeLevel={formState.gradeLevel}
-                  topicTitle={currentTopic?.title || 'Unterrichtsthema'}
+                  subjectName={output.meta?.subjectName || currentSubject.name}
+                  gradeLevel={output.meta?.gradeLevel || formState.gradeLevel}
+                  topicTitle={output.meta?.topicTitle || currentTopic?.title || 'Unterrichtsthema'}
                   inclusionMode={formState.inclusionMode}
+                  playerUrl={playerUrl}
+                  isStale={isStale}
+                  currentFormTopicTitle={currentTopic?.title}
                 />
               )}
 
               {activeTab === 'rubric' && (
                 <TabRubricAssessment
                   rubricMarkdown={output.rubricMarkdown}
-                  topicTitle={currentTopic?.title || 'Unterrichtsthema'}
-                  subjectName={currentSubject.name}
-                  gradeLevel={formState.gradeLevel}
+                  topicTitle={output.meta?.topicTitle || currentTopic?.title || 'Unterrichtsthema'}
+                  subjectName={output.meta?.subjectName || currentSubject.name}
+                  gradeLevel={output.meta?.gradeLevel || formState.gradeLevel}
                   onRubricChange={md => setOutput(prev => ({ ...prev, rubricMarkdown: md }))}
                 />
               )}

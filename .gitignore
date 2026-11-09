@@ -6,3 +6,5 @@ dist-ssr
 .env.production
 .DS_Store
 scripts/screenshots/
+.projectatlas/
+

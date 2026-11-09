@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Printer, Eye, EyeOff, BookA, QrCode, FileText, Download, CheckCircle2 } from 'lucide-react';
+import { Printer, Eye, EyeOff, BookA, QrCode, FileText, Download, CheckCircle2, AlertCircle } from 'lucide-react';
 import { generateQrCodeDataUrl, downloadFile } from '../../services/exportService';
 
 interface TabWorksheetPrintProps {
@@ -9,6 +9,9 @@ interface TabWorksheetPrintProps {
   gradeLevel: number | string;
   topicTitle: string;
   inclusionMode: boolean;
+  playerUrl?: string;
+  isStale?: boolean;
+  currentFormTopicTitle?: string;
 }
 
 export const TabWorksheetPrint: React.FC<TabWorksheetPrintProps> = ({
@@ -17,21 +20,26 @@ export const TabWorksheetPrint: React.FC<TabWorksheetPrintProps> = ({
   subjectName,
   gradeLevel,
   topicTitle,
-  inclusionMode
+  inclusionMode,
+  playerUrl,
+  isStale = false,
+  currentFormTopicTitle
 }) => {
   const [showSolutions, setShowSolutions] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
 
   useEffect(() => {
-    generateQrCodeDataUrl(window.location.href).then(setQrCodeUrl);
-  }, []);
+    const targetUrl = playerUrl || window.location.href;
+    generateQrCodeDataUrl(targetUrl).then(setQrCodeUrl);
+  }, [playerUrl]);
 
   const handlePrint = () => {
     window.print();
   };
 
   const handleDownloadMarkdown = () => {
-    const filename = `${subjectName}_Kl${gradeLevel}_Arbeitsblatt.md`;
+    const safeTopic = topicTitle.replace(/[^a-zA-Z0-9äöüÄÖÜß_-]/g, '_');
+    const filename = `${subjectName}_Kl${gradeLevel}_${safeTopic}_Arbeitsblatt.md`;
     downloadFile(worksheetMarkdown, filename, 'text/markdown;charset=utf-8');
   };
 
@@ -71,6 +79,22 @@ export const TabWorksheetPrint: React.FC<TabWorksheetPrintProps> = ({
           </button>
         </div>
       </div>
+
+      {/* STALE SELECTION WARNING (HIDDEN ON PRINT) */}
+      {isStale && (
+        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 shadow-xs print:hidden animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              Das Thema im Konfigurator wurde geändert{currentFormTopicTitle ? ` zu „${currentFormTopicTitle}“` : ''}.
+              Dieses Arbeitsblatt zeigt noch den vorherigen Stand (<em>{topicTitle}</em>).
+            </span>
+          </div>
+          <span className="text-[11px] font-bold text-amber-800 bg-amber-150 px-2.5 py-1 rounded-lg border border-amber-300 shrink-0">
+            Klicke links auf „Erstellen“
+          </span>
+        </div>
+      )}
 
       {/* PRINT-OPTIMIZED DIN-A4 SHEET */}
       <div 
@@ -165,9 +189,20 @@ export const TabWorksheetPrint: React.FC<TabWorksheetPrintProps> = ({
   );
 };
 
-function formatWorksheetHtml(markdown: string, showSolutions: boolean): string {
-  // Simple clean markdown-to-html formatter for school worksheets
-  let html = markdown
+export function formatWorksheetHtml(markdown: string, showSolutions: boolean): string {
+  // Regex targeting only real solution section headings
+  const solutionHeaderRegex = /(?:^|\n)###?\s*(?:Musterlösung|Lösungsteil|Lösungen|Erwartungshorizont|Lösungshinweise)[\s\S]*$/i;
+
+  let textToRender = markdown;
+  let solutionsCutOff = false;
+
+  if (!showSolutions && solutionHeaderRegex.test(textToRender)) {
+    textToRender = textToRender.replace(solutionHeaderRegex, '');
+    solutionsCutOff = true;
+  }
+
+  // Markdown-to-HTML conversion
+  let html = textToRender
     .replace(/^### (.*$)/gim, '<h3 class="text-base font-extrabold text-slate-900 mt-4 mb-2 pb-1 border-b border-slate-200">$1</h3>')
     .replace(/^## (.*$)/gim, '<h2 class="text-lg font-black text-school-primary mt-6 mb-3">$1</h2>')
     .replace(/^# (.*$)/gim, '<h1 class="text-xl font-black text-slate-900 mt-4 mb-3">$1</h1>')
@@ -187,14 +222,8 @@ function formatWorksheetHtml(markdown: string, showSolutions: boolean): string {
     return `<span class="inline-block bg-rose-100 text-rose-800 px-2.5 py-0.5 rounded-lg text-xs font-bold mr-1">NIVEAU ROT (AFB III)</span>${extra ? ' – ' + extra.trim() : ''}`;
   });
 
-  // Solution block handling
-  if (!showSolutions) {
-    const solutionIdx = html.toLowerCase().indexOf('lösung');
-    if (solutionIdx !== -1) {
-      // Hide solutions if user selected pupil view
-      html = html.slice(0, solutionIdx) + 
-        '<div class="p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-xs text-slate-500 italic mt-6 print:hidden">Lösungsteil für Lehrkräfte ausgeblendet. Klicke oben auf "Lösungen einblenden", um die Musterlösung anzuzeigen.</div>';
-    }
+  if (solutionsCutOff) {
+    html += '<div class="p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-xs text-slate-500 italic mt-6 print:hidden">Lösungsteil für Lehrkräfte ausgeblendet. Klicke oben auf "Lösungen einblenden", um die Musterlösung anzuzeigen.</div>';
   }
 
   return `<p class="mb-2">${html}</p>`;

@@ -82,10 +82,14 @@ export default async function handler(req: any, res: any) {
     for (const currentModel of candidateModels) {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${activeKey}`;
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 50000);
+
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({
             contents: [
               {
@@ -100,23 +104,44 @@ export default async function handler(req: any, res: any) {
           })
         });
 
-        if (response.ok) {
-          const data: any = await response.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            return res.status(200).json({ text, model: currentModel });
-          }
+        clearTimeout(timeoutId);
+
+        let data: any = null;
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
         }
 
-        const errJson: any = await response.json().catch(() => ({}));
-        const errMsg = errJson.error?.message || `HTTP ${response.status}`;
+        if (response.ok && data) {
+          const firstCandidate = data.candidates?.[0];
+          const text = firstCandidate?.content?.parts?.[0]?.text;
+          if (text && typeof text === 'string' && text.trim().length > 0) {
+            return res.status(200).json({ text, model: currentModel });
+          }
+
+          // Safety / Block checks
+          const finishReason = firstCandidate?.finishReason;
+          const blockReason = data.promptFeedback?.blockReason;
+          if (finishReason && finishReason !== 'STOP') {
+            lastErrorMessage = `Modell ${currentModel} beendete die Generierung mit Status "${finishReason}".`;
+          } else if (blockReason) {
+            lastErrorMessage = `Prompt wurde durch Sicherheitsfilter geblockt (${blockReason}).`;
+          } else {
+            lastErrorMessage = `Modell ${currentModel} lieferte eine leere Antwort.`;
+          }
+          continue;
+        }
+
+        const errMsg = data?.error?.message || `HTTP ${response.status}`;
         lastErrorMessage = errMsg;
 
         if (response.status === 400 && (errMsg.includes('API_KEY_INVALID') || errMsg.includes('key not valid'))) {
           return res.status(400).json({ error: 'Der angegebene Gemini API-Schlüssel ist ungültig. Bitte prüfe den Schlüssel.' });
         }
       } catch (err: any) {
-        lastErrorMessage = err?.message || String(err);
+        clearTimeout(timeoutId);
+        lastErrorMessage = err?.name === 'AbortError' ? `Timeout nach 50s bei Modell ${currentModel}` : (err?.message || String(err));
       }
     }
 

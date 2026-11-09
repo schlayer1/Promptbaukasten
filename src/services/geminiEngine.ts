@@ -208,19 +208,35 @@ export async function callGeminiApi({
         })
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+
+      if (response.ok && data) {
         const candidateResp = data.candidates?.[0];
         const text = candidateResp?.content?.parts?.[0]?.text;
-        if (text) {
+        if (text && typeof text === 'string' && text.trim().length > 0) {
           cachedWorkingModel = currentModel;
           console.log(`[GeminiEngine] Erfolgreich generiert mit: ${currentModel}`);
           return text;
         }
+
+        const finishReason = candidateResp?.finishReason;
+        const blockReason = data.promptFeedback?.blockReason;
+        if (finishReason && finishReason !== 'STOP') {
+          lastError = new Error(`Modell ${currentModel} beendete die Generierung mit Status "${finishReason}".`);
+        } else if (blockReason) {
+          lastError = new Error(`Prompt wurde durch Sicherheitsfilter geblockt (${blockReason}).`);
+        } else {
+          lastError = new Error(`Modell ${currentModel} lieferte eine leere Antwort.`);
+        }
+        continue;
       }
 
-      const errJson = await response.json().catch(() => ({}));
-      const errMsg = errJson.error?.message || `HTTP ${response.status}`;
+      const errMsg = data?.error?.message || `HTTP ${response.status}`;
       lastError = new Error(errMsg);
 
       if (response.status === 400 && (errMsg.includes('API_KEY_INVALID') || errMsg.includes('key not valid'))) {

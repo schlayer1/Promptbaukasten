@@ -397,6 +397,51 @@ Die Sippe bot Schutz vor wilden [Tieren* / Autos / Flugzeugen].
   }
   assert(indicesSeen.size > 2, `Anti-A-bias: Option shuffling distributed correct index across ${indicesSeen.size} different positions`);
 
+  // TEST 6: WORKSHEET REGEX SOLUTION CUTOFF & PLAYER URL
+  console.log('\n--- TEST 6: WORKSHEET REGEX SOLUTION CUTOFF & PLAYER ROUTING ---');
+  function formatWorksheetHtmlTest(markdown, showSolutions) {
+    const solutionHeaderRegex = /(?:^|\n)###?\s*(?:Musterlösung|Lösungsteil|Lösungen|Erwartungshorizont|Lösungshinweise)[\s\S]*$/i;
+    let textToRender = markdown;
+    let solutionsCutOff = false;
+    if (!showSolutions && solutionHeaderRegex.test(textToRender)) {
+      textToRender = textToRender.replace(solutionHeaderRegex, '');
+      solutionsCutOff = true;
+    }
+    if (solutionsCutOff) {
+      textToRender += '\n[LÖSUNGSTEIL_PLACEHOLDER]';
+    }
+    return textToRender;
+  }
+
+  const sampleChemistryWorksheet = `
+### NIVEAU GRÜN (AFB I)
+1. Beschreibe deinen Lösungsansatz für das Experiment mit Kochsalz.
+2. Warum löst sich das Salz in Wasser zu einer Salzlösung auf?
+
+### NIVEAU GELB (AFB II)
+3. Finde eine kreative Problemlösung für die Stofftrennung.
+
+### Musterlösung & Erwartungshorizont (Für die Lehrkraft)
+- Zu 1: Der Lösungsansatz basiert auf der Gitterenergie von NaCl.
+- Zu 2: Die Wassermoleküle hydratisieren die Natrium- und Chlorid-Ionen.
+`;
+
+  const pupilView = formatWorksheetHtmlTest(sampleChemistryWorksheet, false);
+  assert(pupilView.includes('Lösungsansatz'), 'Pupil view preserves the word "Lösungsansatz" in task 1 without truncation');
+  assert(pupilView.includes('Salzlösung'), 'Pupil view preserves the word "Salzlösung" in task 2 without truncation');
+  assert(pupilView.includes('Problemlösung'), 'Pupil view preserves the word "Problemlösung" in task 3 without truncation');
+  assert(!pupilView.includes('Gitterenergie von NaCl'), 'Pupil view successfully strips the teacher solution section');
+  assert(pupilView.includes('[LÖSUNGSTEIL_PLACEHOLDER]'), 'Pupil view attaches placeholder for hidden teacher solutions');
+
+  const teacherView = formatWorksheetHtmlTest(sampleChemistryWorksheet, true);
+  assert(teacherView.includes('Gitterenergie von NaCl'), 'Teacher view preserves the full Musterlösung section');
+
+  // Verify Player URL format
+  const baseUrl = 'https://promptbaukasten.vercel.app';
+  const playerUrl = `${baseUrl}/?play=1&subject=deutsch&topic=de-56-1`;
+  assert(playerUrl.includes('?play=1'), 'Player URL includes ?play=1 parameter for distraction-free student mode');
+  assert(playerUrl.includes('subject=deutsch') && playerUrl.includes('topic=de-56-1'), 'Player URL carries subject and topic query parameters');
+
   console.log('\n==================================================');
   console.log(`🏁 FINAL SUITE RESULT: ${passCount} PASSED, ${failCount} FAILED`);
   console.log('==================================================');

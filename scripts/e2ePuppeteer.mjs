@@ -410,6 +410,28 @@ async function runE2E() {
       assert(isMobileResponsive.scrollWidthMatches, `Station iframe has zero horizontal overflow on iPhone (body: ${isMobileResponsive.bodyWidth}px, scroll: ${isMobileResponsive.scrollWidth}px)`);
     }
 
+    // ========================================================
+    // SCENARIO 8: DEDICATED STUDENT PLAYER MODE (?play=1 / QR CODE ROUTING)
+    // ========================================================
+    console.log('\n--- SCENARIO 8: DEDICATED STUDENT PLAYER MODE (?play=1) ---');
+    await page.setViewport({ width: 1280, height: 800 });
+    await page.goto(`${serverUrl}/?play=1`, { waitUntil: 'networkidle0' });
+
+    // Verify teacher sidebar/form builder is NOT present
+    const hasTeacherForm = await page.$('form');
+    assert(!hasTeacherForm, 'Teacher configurator form is hidden in Student Player mode');
+
+    // Verify student game iframe is present and full-screen
+    const playerIframe = await page.waitForSelector('iframe', { timeout: 5000 });
+    assert(!!playerIframe, 'Interactive Game / Station iframe is rendered in full-screen for students');
+
+    // Verify minimal HBS header exists with link back to teacher mode
+    const playerHeader = await page.$('header');
+    assert(!!playerHeader, 'Minimal HBS student player header is present');
+
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, '12_student_player_mode.png') });
+    console.log('  📸 Saved: 12_student_player_mode.png');
+
     console.log('\n====================================================');
     console.log(`🏁 PUPPETEER E2E RESULT: ${passCount} PASSED, ${failCount} FAILED`);
     console.log('====================================================');
