@@ -3,15 +3,15 @@ import {
   getFirestore, 
   collection, 
   doc, 
-  getDoc, 
   getDocs, 
   setDoc, 
   deleteDoc, 
+  onSnapshot,
   query, 
   orderBy, 
   Firestore 
 } from 'firebase/firestore';
-import { PortalUser } from '../types/user';
+import { PortalUser, TeacherGender } from '../types/user';
 import { CloudMaterial } from '../types/cloud';
 
 // Offizielle Firebase Konfiguration des HBS App-Portals (terminkalender-7f269)
@@ -79,6 +79,159 @@ try {
   console.warn("[Firebase] Init-Warnung (Offline Cache aktiv):", err);
 }
 
+const TEACHERS_CACHE_KEY = 'hbs_promptbaukasten_teachers_cache_v1';
+
+interface StatistikTeacherRaw {
+  id?: string;
+  name?: string;
+  pin?: string;
+  gender?: string;
+  active?: boolean;
+}
+
+const normalizeGender = (val: unknown): TeacherGender => {
+  if (val === 'f' || val === 'm' || val === 'd') return val;
+  return '';
+};
+
+export function getCachedTeachers(): PortalUser[] {
+  if (typeof window === 'undefined') return INITIAL_SEED_TEACHERS;
+  try {
+    const raw = localStorage.getItem(TEACHERS_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return INITIAL_SEED_TEACHERS;
+}
+
+function setCachedTeachers(teachers: PortalUser[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(TEACHERS_CACHE_KEY, JSON.stringify(teachers));
+  } catch {}
+}
+
+function mergeTeachers(baseUsers: PortalUser[], statistikList: StatistikTeacherRaw[]): PortalUser[] {
+  const merged = baseUsers.map(u => ({ ...u }));
+  statistikList.forEach(st => {
+    const rawName = (st?.name || '').trim();
+    if (!rawName || rawName.toLowerCase().includes('schulleitung')) return;
+
+    const stId = st.id ? String(st.id).trim() : '';
+    const cleanLower = rawName.toLowerCase();
+    const idx = merged.findIndex(
+      u =>
+        (stId && (u.sourceTeacherId === stId || u.id === `t-${stId}` || u.id === stId)) ||
+        u.name.trim().toLowerCase() === cleanLower
+    );
+
+    const rawPin = st.pin !== undefined && st.pin !== null ? String(st.pin).trim() : '';
+    const validPin = /^\d{4,}$/.test(rawPin) ? rawPin : '';
+    const hasGenderField = st.gender !== undefined && st.gender !== null;
+    const incomingGender = normalizeGender(st.gender);
+    const incomingActive = st.active !== false;
+
+    if (idx >= 0) {
+      const target = merged[idx];
+      if (validPin) target.pin = validPin;
+      if (hasGenderField) target.gender = incomingGender;
+      target.name = rawName;
+      target.active = incomingActive;
+      if (stId) target.sourceTeacherId = stId;
+    } else if (validPin) {
+      merged.push({
+        id: stId ? `t-${stId}` : `t-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        sourceTeacherId: stId || undefined,
+        name: rawName,
+        gender: incomingGender,
+        pin: validPin,
+        role: 'teacher',
+        active: incomingActive,
+        createdAt: Date.now()
+      });
+    }
+  });
+  return merged;
+}
+
+/**
+ * Loads authoritative teacher list from Vertretungsstatistik (statistik-91f25/schools/HBS)
+ * via keyless Firestore REST API (no hardcoded API keys).
+ */
+export async function fetchStatistikTeachersViaRest(): Promise<StatistikTeacherRaw[]> {
+  try {
+    const res = await fetch(
+      'https://firestore.googleapis.com/v1/projects/statistik-91f25/databases/(default)/documents/schools/HBS'
+    );
+    if (!res.ok) return [];
+    const docJson = await res.json();
+    const values = docJson?.fields?.teachers?.arrayValue?.values;
+    if (!Array.isArray(values)) return [];
+    return values.map((v: any) => {
+      const f = v?.mapValue?.fields || {};
+      return {
+        id: f.id?.stringValue ?? '',
+        name: f.name?.stringValue ?? '',
+        pin: f.pin?.stringValue ?? '',
+        gender: f.gender?.stringValue ?? '',
+        active: f.active?.booleanValue !== undefined ? Boolean(f.active.booleanValue) : true
+      };
+    });
+  } catch (err) {
+    console.warn("[Firebase] Statistik REST Sync-Warnung:", err);
+    return [];
+  }
+}
+
+export function subscribeToSyncedTeachers(callback: (teachers: PortalUser[]) => void): {
+  refresh: () => Promise<void>;
+  unsubscribe: () => void;
+} {
+  let latestBase: PortalUser[] = getCachedTeachers();
+  let latestStatistik: StatistikTeacherRaw[] = [];
+  let unsubPortal: (() => void) | null = null;
+
+  const emitMerged = () => {
+    const next = mergeTeachers(latestBase, latestStatistik);
+    setCachedTeachers(next);
+    callback(next);
+  };
+
+  const refresh = async () => {
+    const statList = await fetchStatistikTeachersViaRest();
+    if (statList.length > 0) {
+      latestStatistik = statList;
+      emitMerged();
+    }
+  };
+
+  if (db) {
+    try {
+      const portalRef = doc(db, "hbs_appportal", "portal_data");
+      unsubPortal = onSnapshot(portalRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.users) && data.users.length > 0) {
+            latestBase = data.users;
+            emitMerged();
+          }
+        }
+      }, () => {});
+    } catch {}
+  }
+
+  refresh();
+
+  return {
+    refresh,
+    unsubscribe: () => {
+      if (unsubPortal) unsubPortal();
+    }
+  };
+}
+
 // --- AUTHENTIFIZIERUNG ---
 
 export function getCachedCurrentUser(): PortalUser | null {
@@ -91,10 +244,16 @@ export function getCachedCurrentUser(): PortalUser | null {
   }
 }
 
-export function loginWithPin(userId: string, pin: string): { success: boolean; user?: PortalUser; error?: string } {
+export function loginWithPin(
+  userId: string,
+  pin: string,
+  availableTeachers?: PortalUser[]
+): { success: boolean; user?: PortalUser; error?: string } {
+  const list = availableTeachers && availableTeachers.length > 0 ? availableTeachers : getCachedTeachers();
+
   // 1. Admin Master-PIN
   if (pin === MASTER_ADMIN_PIN) {
-    const target = INITIAL_SEED_TEACHERS.find(t => t.id === userId) || {
+    const target = list.find(t => t.id === userId) || {
       id: "admin-master",
       name: "Schulleitung / Admin",
       pin: MASTER_ADMIN_PIN,
@@ -108,7 +267,7 @@ export function loginWithPin(userId: string, pin: string): { success: boolean; u
   }
 
   // 2. Lehrer-PIN prüfen
-  const teacher = INITIAL_SEED_TEACHERS.find(t => t.id === userId);
+  const teacher = list.find(t => t.id === userId && t.active !== false);
   if (!teacher) {
     return { success: false, error: "Lehrkraft nicht gefunden." };
   }

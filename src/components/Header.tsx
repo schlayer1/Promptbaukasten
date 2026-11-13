@@ -15,6 +15,7 @@ import { AiProvider } from '../types/ai';
 import { PROVIDER_CONFIGS } from '../data/defaultPresets';
 import { getEffectiveApiKey } from '../services/aiService';
 import { useAuth } from '../context/AuthContext';
+import { formatTeacherName } from '../types/user';
 
 interface HeaderProps {
   selectedProvider: AiProvider;
@@ -134,8 +135,8 @@ export const Header: React.FC<HeaderProps> = ({
             {/* USER LOGIN / STATUS BADGE */}
             {isAuthenticated && currentUser ? (
               <div className="flex items-center gap-1 bg-slate-100 pl-2.5 pr-1 py-1 rounded-xl border border-slate-200">
-                <span className="text-xs font-bold text-slate-800 max-w-[90px] sm:max-w-[120px] truncate" title={`Angemeldet als ${currentUser.name}`}>
-                  {currentUser.name}
+                <span className="text-xs font-bold text-slate-800 max-w-[90px] sm:max-w-[120px] truncate" title={`Angemeldet als ${formatTeacherName(currentUser)}`}>
+                  {formatTeacherName(currentUser)}
                 </span>
                 <button
                   onClick={logout}

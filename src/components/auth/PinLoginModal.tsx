@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Lock, UserCheck, Shield, HelpCircle, ArrowRight, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { formatTeacherName } from '../../types/user';
 
 interface PinLoginModalProps {
   onShowToast: (title: string, message?: string, type?: 'success' | 'error' | 'info') => void;
@@ -9,10 +10,22 @@ interface PinLoginModalProps {
 export const PinLoginModal: React.FC<PinLoginModalProps> = ({ onShowToast }) => {
   const { isLoginModalOpen, closeLoginModal, teachersList, login, loginGuest } = useAuth();
   
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string>(teachersList[0]?.id || '');
+  const visibleTeachers = useMemo(() => {
+    return teachersList
+      .filter(t => t.active !== false && t.role !== 'admin' && !t.name.toLowerCase().includes('schulleitung'))
+      .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  }, [teachersList]);
+
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>(visibleTeachers[0]?.id || '');
   const [pin, setPin] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (visibleTeachers.length > 0 && !visibleTeachers.some(t => t.id === selectedTeacherId)) {
+      setSelectedTeacherId(visibleTeachers[0].id);
+    }
+  }, [visibleTeachers, selectedTeacherId]);
 
   if (!isLoginModalOpen) return null;
 
@@ -30,8 +43,8 @@ export const PinLoginModal: React.FC<PinLoginModalProps> = ({ onShowToast }) => 
     setIsSubmitting(false);
 
     if (res.success) {
-      const teacher = teachersList.find(t => t.id === selectedTeacherId);
-      onShowToast('Willkommen zurück!', `Eingeloggt als ${teacher ? teacher.name : 'Lehrkraft'}.`, 'success');
+      const teacher = visibleTeachers.find(t => t.id === selectedTeacherId) || teachersList.find(t => t.id === selectedTeacherId);
+      onShowToast('Willkommen zurück!', `Eingeloggt als ${teacher ? formatTeacherName(teacher) : 'Lehrkraft'}.`, 'success');
       setPin('');
     } else {
       setErrorMsg(res.error || 'Ungültige PIN. Bitte prüfe deine Eingabe.');
@@ -89,9 +102,9 @@ export const PinLoginModal: React.FC<PinLoginModalProps> = ({ onShowToast }) => 
               }}
               className="w-full text-sm font-semibold px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-school-primary text-slate-800"
             >
-              {teachersList.map(t => (
+              {visibleTeachers.map(t => (
                 <option key={t.id} value={t.id}>
-                  {t.name} (HBS)
+                  {formatTeacherName(t)} (HBS)
                 </option>
               ))}
             </select>

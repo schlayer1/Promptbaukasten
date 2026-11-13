@@ -40,6 +40,7 @@ import { CloudMaterial } from './types/cloud';
 import { THUERINGEN_SUBJECTS, getDoubleGrade } from './data/thueringenCurriculum';
 import { PROVIDER_CONFIGS } from './data/defaultPresets';
 import { useAuth } from './context/AuthContext';
+import { formatTeacherName } from './types/user';
 import { saveMaterialToCloud, loadMaterialsFromCloud } from './services/firebase';
 import { 
   buildDidacticPrompt, 
@@ -442,7 +443,7 @@ Klassenstufe 6 • Deutsch • Staatliche Regelschule Heimbürgeschule Kahla
         giftExport: output.giftExport,
         promptText: output.promptText,
         authorId: currentUser.id,
-        authorName: currentUser.name,
+        authorName: formatTeacherName(currentUser),
         sharedWithSchool: true,
         updatedAt: Date.now()
       };
