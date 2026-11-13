@@ -6,27 +6,35 @@
 // Optionaler Legacy-Client-Key (wird nur verwendet, falls noch in Vite gesetzt)
 export const DEFAULT_SCHOOL_GEMINI_KEY = ((import.meta as any).env?.VITE_GEMINI_API_KEY as string)?.trim() || '';
 
-// Bekannte zukunftssichere Flash-Modelle in bevorzugter Prioritätsreihenfolge
+// Bekannte zukunftssichere Free-Tier Flash-/Hydrogen-Modelle in bevorzugter Prioritätsreihenfolge
 export const CANDIDATE_FLASH_MODELS = [
+  'gemini-4-hydrogen',
   'gemini-flash-lite-latest',
-  'gemini-3-flash-preview',
-  'gemini-flash-latest',
-  'gemini-3.6-flash',
-  'gemini-3.7-flash',
+  'gemini-3.5-flash-lite',
   'gemini-3.8-flash',
-  'gemini-3.5-flash',
-  'gemini-3.1-flash-lite-preview',
+  'gemini-3.6-flash',
+  'gemini-flash-latest',
 ];
 
-// Explizit eingestellte / abgeschaltete Modelle (Fehler 404 / "no longer available")
+// Explizit eingestellte, abgeschaltete oder kostenpflichtige Modelle
 const SUNSET_OR_DISCONTINUED_PATTERNS = [
-  '2.5-flash',
-  '2.5-pro',
-  '1.5-flash',
-  '1.5-pro',
-  '1.0-pro',
-  '2.0-flash',
-  '2.0-pro',
+  'argon',
+  'carbon',
+  '2.5-',
+  '1.5-',
+  '1.0-',
+  '2.0-',
+  '3.7-flash',
+  '3-flash-preview',
+  '3.1-flash-lite',
+  '3-pro-preview',
+  '3.1-pro',
+  'pro-latest',
+  'omni',
+  'live',
+  'nano-banana',
+  'deep-research',
+  'antigravity',
   '8b',
   'embedding',
   'aqa',
@@ -40,11 +48,11 @@ const SUNSET_OR_DISCONTINUED_PATTERNS = [
   'lyria',
 ];
 
-let cachedWorkingModel: string | null = 'gemini-flash-lite-latest';
+let cachedWorkingModel: string | null = 'gemini-4-hydrogen';
 let cachedDiscoveredModels: string[] = [];
 
 /**
- * Ermittelt live alle aktiven Textmodelle direkt über die Google API
+ * Ermittelt live alle aktiven Free-Tier Textmodelle direkt über die Google API
  */
 export async function discoverAvailableGeminiModels(apiKey?: string): Promise<string[]> {
   if (cachedDiscoveredModels.length > 0) {
@@ -64,16 +72,26 @@ export async function discoverAvailableGeminiModels(apiKey?: string): Promise<st
 
       const supported = rawModels
         .filter((m: any) => {
-          const name = (m.name || '').toLowerCase();
+          const shortName = (m.name || '').replace(/^models\//, '').toLowerCase();
           const methods = m.supportedGenerationMethods || [];
           if (!methods.includes('generateContent')) return false;
+          if (!shortName.includes('hydrogen') && !shortName.includes('flash')) return false;
+          if (shortName === 'gemini-3.5-flash') return false;
 
           for (const pattern of SUNSET_OR_DISCONTINUED_PATTERNS) {
-            if (name.includes(pattern)) return false;
+            if (shortName.includes(pattern)) return false;
           }
           return true;
         })
-        .map((m: any) => (m.name || '').replace(/^models\//, ''));
+        .map((m: any) => (m.name || '').replace(/^models\//, ''))
+        .sort((a: string, b: string) => {
+          const ia = CANDIDATE_FLASH_MODELS.indexOf(a);
+          const ib = CANDIDATE_FLASH_MODELS.indexOf(b);
+          if (ia !== -1 && ib !== -1) return ia - ib;
+          if (ia !== -1) return -1;
+          if (ib !== -1) return 1;
+          return 0;
+        });
 
       if (supported.length > 0) {
         cachedDiscoveredModels = supported;
