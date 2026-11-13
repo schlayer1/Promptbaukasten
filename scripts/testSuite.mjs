@@ -134,13 +134,13 @@ async function runTests() {
   if (GEMINI_DEFAULT_KEY && GEMINI_DEFAULT_KEY.length > 20) {
     try {
       assert(GEMINI_DEFAULT_KEY.length > 20, 'VITE_GEMINI_API_KEY vorhanden');
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${GEMINI_DEFAULT_KEY}`;
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-4-hydrogen:generateContent?key=${GEMINI_DEFAULT_KEY}`;
       const geminiPayload = {
         contents: [{
           parts: [{ text: "Antworte bitte in genau einem Wort: 'BEREIT'." }]
         }],
         generationConfig: {
-          maxOutputTokens: 30,
+          maxOutputTokens: 1024,
           temperature: 0.1
         }
       };

@@ -52,12 +52,14 @@ export const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     description: 'Empfohlen für umfangreiche Unterrichtsmaterialien & detailreiche Lernspiele. Hohe Generierungsqualität.',
     freeTierInfo: 'Kostenloses Kontingent via Google AI Studio (15 Abfragen/Min kostenlos).',
     apiKeyUrl: 'https://aistudio.google.com/app/apikey',
-    defaultModel: 'gemini-flash-lite-latest',
+    defaultModel: 'gemini-4-hydrogen',
     availableModels: [
-      { id: 'gemini-flash-lite-latest', label: 'Gemini Flash Lite (Ultra-stabil & schnell)', recommended: true },
-      { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (Neueste Generation)' },
-      { id: 'gemini-flash-latest', label: 'Gemini Flash Latest (Standard)' },
-      { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash' }
+      { id: 'gemini-4-hydrogen', label: 'Gemini 4 Hydrogen (Neuestes Free-Tier-Modell)', recommended: true },
+      { id: 'gemini-flash-lite-latest', label: 'Gemini Flash Lite Latest (Ultra-stabil & schnell)' },
+      { id: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash Lite' },
+      { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash' },
+      { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash' },
+      { id: 'gemini-flash-latest', label: 'Gemini Flash Latest (Standard)' }
     ],
     envKeyName: 'VITE_GEMINI_API_KEY'
   },
